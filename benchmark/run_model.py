@@ -55,7 +55,7 @@ if __name__ == '__main__':
     model = select_model(model_name)
     tf_func = tf.function(lambda x : model.call(x, training=False), 
                           input_signature=[tf.TensorSpec((batch_size, 224, 224, 3), tf.float32)], 
-                          jit_compile=True)
+                          jit_compile=False)
 
     xs, _ = loader.imgnet.load_datas(max(n, warm_size))
 
