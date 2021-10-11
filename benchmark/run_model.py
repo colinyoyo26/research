@@ -6,7 +6,7 @@ import sys
 import os
 
 from tensorflow.python import training
-from tensorflow.keras.applications import NASNetMobile, EfficientNetB0
+from tensorflow.keras.applications import NASNetMobile, EfficientNetB0, MobileNet
 
 ROOT_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..')
 sys.path.append(ROOT_PATH)
@@ -24,8 +24,9 @@ def cu_prof_stop():
       raise Exception('cudaProfilerStop() returned %d' % ret)
 
 def select_model(model_name: str):
-    models = {'nasnet_mobile': NASNetMobile,
-              'efficientnet_b0': EfficientNetB0}
+    models = {'NASNetMobile': NASNetMobile,
+              'EfficientNetB0': EfficientNetB0,
+              'MobileNet': MobileNet}
     model = models.get(model_name)
     if model == None:
         exit(1)
@@ -35,7 +36,7 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('--n', type=int, default=sys.maxsize, help='number of images')
     parser.add_argument('--batch_size', type=int, default=1, help='batch size')
-    parser.add_argument('--model_name', type=str, default='nasnet_mobile', help='model name')
+    parser.add_argument('--model_name', type=str, default='NASNetMobile', help='model name')
     parser.add_argument('--warmup', type=bool, default=False, help='use 100 inputs to warm up for jit')
     args = vars(parser.parse_args())
     
