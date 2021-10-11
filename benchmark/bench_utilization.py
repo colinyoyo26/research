@@ -42,8 +42,8 @@ if __name__ == '__main__':
     
     overall_sm_efficiency = []
     for sm_log_file, log_file in log_files:
-        sm_extracted = nvlog.extract.extract_kernel_sm_tf(sm_log_file)
-        extracted = nvlog.extract.extract_kernel_tf(log_file, sm_extracted)
+        sm_extracted = nvlog.extract.extract_kernel_tf(sm_log_file)
+        extracted = nvlog.extract.extract_kernel_tf(log_file)
         sm_efficiency = nvlog.process.process_log(extracted, sm_extracted)
         overall_sm_efficiency.append(sm_efficiency)
 
