@@ -6,7 +6,7 @@ import sys
 import os
 
 from tensorflow.python import training
-from tensorflow.keras.applications import NASNetMobile, EfficientNetB0, MobileNet
+from tensorflow.keras.applications import NASNetMobile, EfficientNetB0, MobileNet, ResNet50
 
 ROOT_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..')
 sys.path.append(ROOT_PATH)
@@ -26,10 +26,12 @@ def cu_prof_stop():
 def select_model(model_name: str):
     models = {'NASNetMobile': NASNetMobile,
               'EfficientNetB0': EfficientNetB0,
-              'MobileNet': MobileNet}
+              'MobileNet': MobileNet,
+              'ResNet50': ResNet50}
+
     model = models.get(model_name)
-    if model == None:
-        exit(1)
+    assert(model)
+    
     return model()
 
 if __name__ == '__main__':
