@@ -1,6 +1,5 @@
 import tensorflow as tf
 import numpy as np
-import ctypes
 import argparse
 import sys
 import os
@@ -11,17 +10,7 @@ from tensorflow.keras.applications import NASNetMobile, EfficientNetB0, MobileNe
 ROOT_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..')
 sys.path.append(ROOT_PATH)
 from utils import loader
-
-_cudart = ctypes.CDLL('libcudart.so')
-def cu_prof_start():
-    ret = _cudart.cudaProfilerStart()
-    if ret != 0:
-      raise Exception('cudaProfilerStart() returned %d' % ret)
-
-def cu_prof_stop():
-    ret = _cudart.cudaProfilerStop()
-    if ret != 0:
-      raise Exception('cudaProfilerStop() returned %d' % ret)
+from utils import cuda
 
 def select_model(model_name: str):
     models = {'NASNetMobile': NASNetMobile,
@@ -66,7 +55,7 @@ if __name__ == '__main__':
         for i in range(0, warm_size, batch_size):
             tf_func(xs[i: i + batch_size])
 
-    cu_prof_start()
+    cuda.rt.prof_start()
     for i in range(0, n, batch_size):
         tf_func(xs[i: i + batch_size])
-    cu_prof_stop()
+    cuda.rt.prof_stop()
