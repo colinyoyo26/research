@@ -9,23 +9,12 @@ from tensorflow.keras.applications import NASNetMobile, EfficientNetB0, MobileNe
 
 ROOT_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..')
 sys.path.append(ROOT_PATH)
-from utils import loader
-from utils import cuda
-
-def select_model(model_name: str):
-    models = {'NASNetMobile': NASNetMobile,
-              'EfficientNetB0': EfficientNetB0,
-              'MobileNet': MobileNet,
-              'ResNet50': ResNet50}
-
-    model = models.get(model_name)
-    assert(model)
-    
-    return model()
+import utils
+from utils import cuda 
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
-    parser.add_argument('--n', type=int, default=sys.maxsize, help='number of images')
+    parser.add_argument('--n', type=int, default=60000, help='number of images')
     parser.add_argument('--batch_size', type=int, default=1, help='batch size')
     parser.add_argument('--model_name', type=str, default='NASNetMobile', help='model name')
     parser.add_argument('--warmup', type=bool, default=False, help='use 100 inputs to warm up for jit')
@@ -35,7 +24,9 @@ if __name__ == '__main__':
     batch_size = args['batch_size']
     model_name = args['model_name']
     warmup = args['warmup']
-    warm_size = 100
+
+    n = (n + batch_size - 1) // batch_size * batch_size
+    warm_size = (100 + batch_size - 1) // batch_size * batch_size
 
     os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3' 
     physical_devices = tf.config.list_physical_devices('GPU')
@@ -44,12 +35,12 @@ if __name__ == '__main__':
     except:
         exit(1)
 
-    model = select_model(model_name)
+    model = utils.tf.model.select_model(model_name)
     tf_func = tf.function(lambda x : model.call(x, training=False), 
                           input_signature=[tf.TensorSpec((batch_size, 224, 224, 3), tf.float32)], 
                           jit_compile=False)
 
-    xs, _ = loader.imgnet.load_datas(max(n, warm_size))
+    xs = np.random.rand(max(n, warm_size), 224, 224, 3)
 
     if warmup:
         for i in range(0, warm_size, batch_size):
