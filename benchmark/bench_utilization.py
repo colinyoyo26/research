@@ -27,13 +27,13 @@ if __name__ == '__main__':
             run_model_command[7] = model_name
             run_model_command[9] = str(batch_size)
 
-            sm_log_file =  model_name + str(batch_size) + '_sm.log'
+            sm_log_file =  f'{model_name}_{batch_size}_sm.log'
             nvprof_command[6] = sm_log_file
     
             command = nvprof_command + nvprof_metrics + run_model_command
             subprocess.run(command)
 
-            log_file = model_name + str(batch_size) + '.log'
+            log_file = f'{model_name}_{batch_size}.log'
             nvprof_command[6] = log_file
             command = nvprof_command + run_model_command
             subprocess.run(command)
@@ -50,5 +50,5 @@ if __name__ == '__main__':
     i = 0
     for model_name in model_names:
         for batch_size in batch_sizes:
-            print(model_name + str(batch_size), overall_sm_efficiency[i])
+            print(f'{model_name}_{batch_size}:', overall_sm_efficiency[i])
             i += 1
