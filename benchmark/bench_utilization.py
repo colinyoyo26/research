@@ -7,7 +7,7 @@ sys.path.append(ROOT_PATH)
 from utils import nvlog
 
 model_names = ['NASNetMobile', 'MobileNet', 'ResNet50']
-batch_sizes = [1]
+batch_sizes = [1, 4, 8]
 nr_inputs = 1
 
 if __name__ == '__main__':
@@ -46,9 +46,6 @@ if __name__ == '__main__':
         extracted = nvlog.extract.extract_kernel_tf(log_file)
         sm_efficiency = nvlog.process.process_log(extracted, sm_extracted)
         overall_sm_efficiency.append(sm_efficiency)
-
-    i = 0
-    for model_name in model_names:
-        for batch_size in batch_sizes:
-            print(f'{model_name}_{batch_size}:', overall_sm_efficiency[i])
-            i += 1
+        
+        model_name = log_file.rstrip('.log')
+        print(f'{model_name}: {sm_efficiency}')
