@@ -6,7 +6,7 @@ ROOT_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..')
 sys.path.append(ROOT_PATH)
 from utils import nvlog
 
-model_names = ['NASNetMobile', 'MobileNet', 'ResNet50']
+model_names = ['NASNetMobile', 'EfficientNetB0', 'MobileNet']
 batch_sizes = [1, 4, 8]
 nr_inputs = 1
 
@@ -14,7 +14,7 @@ if __name__ == '__main__':
     os.chdir(os.path.dirname(os.path.abspath(__file__)))
     python = sys.executable
 
-    nvprof_command = ['nvprof', '--csv', '--print-gpu-trace',
+    nvprof_command = ['nvprof', '--csv', '--print-gpu-trace', '--continuous-sampling-interval', '1',
         '--profile-from-start', 'off', '--log-file', '']
     nvprof_metrics = ['--metrics', 'sm_efficiency']
     run_model_command = [python, 'run_model.py', '--n', str(nr_inputs),
@@ -24,17 +24,17 @@ if __name__ == '__main__':
 
     for model_name in model_names:
         for batch_size in batch_sizes:
-            run_model_command[7] = model_name
-            run_model_command[9] = str(batch_size)
+            run_model_command[-3] = model_name
+            run_model_command[-1] = str(batch_size)
 
             sm_log_file =  f'{model_name}_{batch_size}_sm.log'
-            nvprof_command[6] = sm_log_file
+            nvprof_command[-1] = sm_log_file
     
             command = nvprof_command + nvprof_metrics + run_model_command
             subprocess.run(command)
 
             log_file = f'{model_name}_{batch_size}.log'
-            nvprof_command[6] = log_file
+            nvprof_command[-1] = log_file
             command = nvprof_command + run_model_command
             subprocess.run(command)
 
