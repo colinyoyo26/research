@@ -1,4 +1,7 @@
 import tensorflow as tf
+import tvm
+from tvm.contrib import graph_executor
+
 import numpy as np
 import argparse
 import sys
@@ -9,15 +12,24 @@ sys.path.append(ROOT_PATH)
 import utils
 from utils import cuda
 
-def get_compiled(model, compiler):
+def get_compiled(model_name, compiler):
+    model = utils.tf.model.select_model(model_name)
     if compiler == 'tf':
         compiled = tf.function(lambda x : model.call(x, training=False),
                           input_signature=[tf.TensorSpec((batch_size, 224, 224, 3), tf.float32)],
                           jit_compile=False)
 
     elif compiler == 'tvm':
-        graph_executor = utils.tvm.compile.tfv2_to_graph_executor(model)
-        compiled = lambda x : graph_executor.run()
+        tvm_cache = './tvm_cache/' + model_name
+        if not os.path.exists(tvm_cache + '.so'):
+            json, lib, params = utils.tvm.util.build_from_tfv2(model)
+            os.system('mkdir -p tvm_cache')
+            utils.tvm.util.save(json, lib, params, tvm_cache)
+        json, lib, param = utils.tvm.util.load(tvm_cache)
+        
+        dev = tvm.cuda(0)
+        ge = graph_executor.create(json, lib, dev)
+        compiled = lambda x : ge.run()
 
     else:
         exit(1)
@@ -49,8 +61,7 @@ if __name__ == '__main__':
     except:
         exit(1)
 
-    model = utils.tf.model.select_model(model_name)
-    predictor = get_compiled(model, compiler)
+    predictor = get_compiled(model_name, compiler)
     xs = np.random.rand(max(n, warm_size), 224, 224, 3)
 
     if warmup:

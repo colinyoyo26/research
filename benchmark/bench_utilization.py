@@ -6,7 +6,7 @@ ROOT_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..')
 sys.path.append(ROOT_PATH)
 from utils import nvlog
 
-model_names = ['NASNetMobile', 'EfficientNetB0', 'MobileNet']
+model_names = ['NASNetMobile']
 batch_sizes = [1]
 compilers = ['tvm']
 nr_inputs = 1
@@ -21,6 +21,7 @@ if __name__ == '__main__':
     run_model_command = [python, 'run_model.py', '--n', str(nr_inputs),
         '--warmup', 'true', '--compiler', '','--model_name', '', '--batch_size', '']
 
+    subprocess.run('mkdir -p logs', shell=True)
     log_files = []
 
     for compiler in compilers:
@@ -30,13 +31,13 @@ if __name__ == '__main__':
                run_model_command[-3] = model_name
                run_model_command[-1] = str(batch_size)
 
-               sm_log_file =  f'{compiler}_{model_name}_{batch_size}_sm.log'
+               sm_log_file =  f'logs/{compiler}_{model_name}_{batch_size}_sm.log'
                nvprof_command[-1] = sm_log_file
 
                command = nvprof_command + nvprof_metrics + run_model_command
                subprocess.run(command)
 
-               log_file = f'{compiler}_{model_name}_{batch_size}.log'
+               log_file = f'logs/{compiler}_{model_name}_{batch_size}.log'
                nvprof_command[-1] = log_file
                command = nvprof_command + run_model_command
                subprocess.run(command)
@@ -50,5 +51,5 @@ if __name__ == '__main__':
         sm_efficiency = nvlog.process.process_log(extracted, sm_extracted)
         overall_sm_efficiency.append(sm_efficiency)
 
-        model_name = log_file.rstrip('.log')
+        model_name = log_file.rstrip('.log').lstrip('logs/')
         print(f'{model_name}: {sm_efficiency}')
