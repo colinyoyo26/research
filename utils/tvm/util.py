@@ -4,10 +4,7 @@ from tensorflow.python.framework.convert_to_constants import convert_variables_t
 import tvm
 import tvm.relay as relay
 
-def build_from_tfv2(model):
-    tf_func = tf.function(lambda x : model.call(x),
-                          input_signature=[tf.TensorSpec([1, 224, 224, 3], tf.float32)],
-                          jit_compile=False)
+def build_from_tfv2(tf_func):
     frozen = convert_variables_to_constants_v2(tf_func.get_concrete_function())
     mod, params = relay.frontend.from_tensorflow(frozen.graph.as_graph_def())
     target = tvm.target.cuda()

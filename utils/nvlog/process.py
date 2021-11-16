@@ -1,12 +1,13 @@
 def process_log(extracted_file: str):
     lines = open(extracted_file).readlines()
 
-    total_active_time = 0
+    active_count = 0
     total_time = 0
     for line in lines:
-        dur = float(line.split('$')[1])
+        duration = float(line.split('$')[1])
         sm_efficiency = float(line.split('$')[2])
-        total_active_time = total_active_time + dur * sm_efficiency
-        total_time = total_time + dur
+        achieved_occupacy = float(line.split('$')[3])
+        active_count = active_count + duration * sm_efficiency * achieved_occupacy
+        total_time = total_time + duration
     
-    return total_active_time / total_time
+    return active_count / total_time

@@ -24,8 +24,9 @@ def extract_kernel_tf(log_file: str, sm_log_file: str):
     for dur_line, sm_line in zip(log_lines, sm_log_lines):
         kernel_name = dur_line.rstrip('\n').split('\"')[-2]
         dur = dur_line.split(',')[1]
-        sm_efficiency = sm_line.split(',')[-1]
-        extracted_lines.append(f'\"{kernel_name}\"${dur}${sm_efficiency}')
+        sm_efficiency = sm_line.split(',')[-2]
+        achieved_occupancy = sm_line.split(',')[-1]
+        extracted_lines.append(f'\"{kernel_name}\"${dur}${sm_efficiency}${achieved_occupancy}')
 
     extracted_file = log_file.rstrip('log') + 'extracted.log'
     with open(extracted_file, 'w') as fout:

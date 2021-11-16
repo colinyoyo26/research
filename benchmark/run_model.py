@@ -14,15 +14,18 @@ from utils import cuda
 
 def get_compiled(model_name, compiler):
     model = utils.tf.model.select_model(model_name)
+    input_shape = (batch_size, 224, 224, 3)
+    tf_func = tf.function(lambda x : model.call(x, training=False),
+        input_signature=[tf.TensorSpec(input_shape, tf.float32)],
+        jit_compile=False)
+
     if compiler == 'tf':
-        compiled = tf.function(lambda x : model.call(x, training=False),
-                          input_signature=[tf.TensorSpec((batch_size, 224, 224, 3), tf.float32)],
-                          jit_compile=False)
+        compiled = tf_func
 
     elif compiler == 'tvm':
-        tvm_cache = './tvm_cache/' + model_name
+        tvm_cache = f'./tvm_cache/{model_name}_{batch_size}'
         if not os.path.exists(tvm_cache + '.so'):
-            json, lib, params = utils.tvm.util.build_from_tfv2(model)
+            json, lib, params = utils.tvm.util.build_from_tfv2(tf_func)
             os.system('mkdir -p tvm_cache')
             utils.tvm.util.save(json, lib, params, tvm_cache)
         json, lib, param = utils.tvm.util.load(tvm_cache)

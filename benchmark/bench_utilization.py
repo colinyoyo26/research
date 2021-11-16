@@ -6,8 +6,8 @@ ROOT_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..')
 sys.path.append(ROOT_PATH)
 from utils import nvlog
 
-model_names = ['NASNetMobile', 'MobileNet']
-batch_sizes = [1]
+model_names = ['NASNetMobile', 'ResNet50']
+batch_sizes = [1, 32]
 compilers = ['tvm', 'tf']
 nr_inputs = 1
 
@@ -17,7 +17,7 @@ if __name__ == '__main__':
 
     nvprof_command = ['nvprof', '--csv', '--print-gpu-trace', '--continuous-sampling-interval', '1',
         '--profile-from-start', 'off', '--log-file', '']
-    nvprof_metrics = ['--metrics', 'sm_efficiency']
+    nvprof_metrics = ['--metrics', 'sm_efficiency,achieved_occupancy']
     run_model_command = [python, 'run_model.py', '--n', str(nr_inputs),
         '--warmup', 'true', '--compiler', '','--model_name', '', '--batch_size', '']
 
@@ -44,10 +44,7 @@ if __name__ == '__main__':
 
                log_files.append((sm_log_file, log_file))
 
-    overall_sm_efficiency = []
-    for sm_log_file, log_file in log_files:
-        extracted_file = nvlog.extract.extract_kernel_tf(log_file, sm_log_file)
-        active_ratio = nvlog.process.process_log(extracted_file)
-
-        model_name = log_file.rstrip('.log').lstrip('logs/')
-        print(f'{model_name}: {active_ratio}')
+               extracted_file = nvlog.extract.extract_kernel_tf(log_file, sm_log_file)
+               active_ratio = nvlog.process.process_log(extracted_file)
+               name = log_file.rstrip('.log').lstrip('logs/')
+               print(f'{name}: {active_ratio}')
