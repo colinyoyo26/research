@@ -6,9 +6,9 @@ ROOT_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..')
 sys.path.append(ROOT_PATH)
 from utils import nvlog
 
-model_names = ['NASNetMobile']
+model_names = ['NASNetMobile', 'MobileNet']
 batch_sizes = [1]
-compilers = ['tvm']
+compilers = ['tvm', 'tf']
 nr_inputs = 1
 
 if __name__ == '__main__':
@@ -46,10 +46,8 @@ if __name__ == '__main__':
 
     overall_sm_efficiency = []
     for sm_log_file, log_file in log_files:
-        sm_extracted = nvlog.extract.extract_kernel_tf(sm_log_file)
-        extracted = nvlog.extract.extract_kernel_tf(log_file)
-        sm_efficiency = nvlog.process.process_log(extracted, sm_extracted)
-        overall_sm_efficiency.append(sm_efficiency)
+        extracted_file = nvlog.extract.extract_kernel_tf(log_file, sm_log_file)
+        active_ratio = nvlog.process.process_log(extracted_file)
 
         model_name = log_file.rstrip('.log').lstrip('logs/')
-        print(f'{model_name}: {sm_efficiency}')
+        print(f'{model_name}: {active_ratio}')
