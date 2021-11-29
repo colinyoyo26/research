@@ -1,6 +1,8 @@
 import tensorflow as tf
+from tensorflow.python.framework.convert_to_constants import convert_variables_to_constants_v2
 import tvm
 from tvm.contrib import graph_executor
+from tvm.contrib.cuda_graph import cuda_graph_executor
 
 import numpy as np
 import argparse
@@ -22,17 +24,21 @@ def get_compiled(model_name, compiler):
     if compiler == 'tf':
         compiled = tf_func
 
-    elif compiler == 'tvm':
+    elif compiler in ['tvm', 'tvm_cuda_graph']:
         tvm_cache = f'./tvm_cache/{model_name}_{batch_size}'
         if not os.path.exists(tvm_cache + '.so'):
             json, lib, params = utils.tvm.util.build_from_tfv2(tf_func)
             os.system('mkdir -p tvm_cache')
             utils.tvm.util.save(json, lib, params, tvm_cache)
         json, lib, param = utils.tvm.util.load(tvm_cache)
-        
         dev = tvm.cuda(0)
-        ge = graph_executor.create(json, lib, dev)
-        compiled = lambda x : ge.run()
+        
+        if compiler == 'tvm':
+            executor = graph_executor.create(json, lib, dev)
+        elif compiler == 'tvm_cuda_graph':
+            executor = cuda_graph_executor.create(json, lib, dev)
+        
+        compiled = lambda x : executor.run()
 
     else:
         exit(1)
