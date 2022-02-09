@@ -30,6 +30,9 @@ if __name__ == '__main__':
                run_model_command[-5] = compiler
                run_model_command[-3] = model_name
                run_model_command[-1] = str(batch_size)
+               
+               command = run_model_command + ['--print_time', 'true']
+               subprocess.run(command)
 
                sm_log_file =  f'logs/{compiler}_{model_name}_{batch_size}_sm.log'
                nvprof_command[-1] = sm_log_file
@@ -45,6 +48,6 @@ if __name__ == '__main__':
                log_files.append((sm_log_file, log_file))
 
                extracted_file = nvlog.extract.extract_kernel_tf(log_file, sm_log_file)
-               active_ratio = nvlog.process.process_log(extracted_file)
+               active_ratio, time = nvlog.process.process_log(extracted_file)
                name = log_file.rstrip('.log').lstrip('logs/')
-               print(f'{name}: {active_ratio}')
+               print(f'{name}: {active_ratio} {time}')

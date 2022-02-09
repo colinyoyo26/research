@@ -6,6 +6,7 @@ from tvm.contrib.cuda_graph import cuda_graph_executor
 
 import numpy as np
 import argparse
+import time
 import sys
 import os
 
@@ -30,6 +31,9 @@ def get_compiled(model_name, compiler):
             json, lib, params = utils.tvm.util.build_from_tfv2(tf_func)
             os.system('mkdir -p tvm_cache')
             utils.tvm.util.save(json, lib, params, tvm_cache)
+
+        # generate assign.json file 
+        os.system(f'python ../stream_assignment/stream_assignment.py --json_path {tvm_cache}.json')
         json, lib, param = utils.tvm.util.load(tvm_cache)
         dev = tvm.cuda(0)
         
@@ -52,6 +56,7 @@ if __name__ == '__main__':
     parser.add_argument('--model_name', type=str, default='NASNetMobile', help='model name')
     parser.add_argument('--compiler', type=str, default='tf', help='compiler to compile the model')
     parser.add_argument('--warmup', type=bool, default=False, help='use 100 inputs to warm up for jit')
+    parser.add_argument('--print_time', type=bool, default=False)
     args = vars(parser.parse_args())
 
     n = args['n']
@@ -59,6 +64,7 @@ if __name__ == '__main__':
     model_name = args['model_name']
     compiler = args['compiler']
     warmup = args['warmup']
+    print_time = args['print_time']
 
     n = (n + batch_size - 1) // batch_size * batch_size
     warm_size = (100 + batch_size - 1) // batch_size * batch_size
@@ -77,7 +83,14 @@ if __name__ == '__main__':
         for i in range(0, warm_size, batch_size):
             predictor(xs[i: i + batch_size])
 
+    start_time = time.time()
+    
     cuda.rt.prof_start()
     for i in range(0, n, batch_size):
         predictor(xs[i: i + batch_size])
     cuda.rt.prof_stop()
+
+    elapsed = time.time() - start_time
+    if print_time:
+        print('elapsed: ', elapsed)
+
