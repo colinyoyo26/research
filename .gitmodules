@@ -1,3 +1,3 @@
-[submodule "third_party/tvm"]
-	path = third_party/tvm
-	url = https://github.com/colinyoyo26/tvm
+[submodule "thirdparty"]
+	path = thirdparty
+	url = https://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@github.com/colinyoyo26/tvm_test.git
