@@ -7,3 +7,4 @@ __pycache__/
 savedmodel/
 tvm_cache/
 logs/
+stream_assignment/*json
