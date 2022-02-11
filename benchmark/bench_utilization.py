@@ -27,27 +27,29 @@ if __name__ == '__main__':
     for compiler in compilers:
         for model_name in model_names:
             for batch_size in batch_sizes:
-               run_model_command[-5] = compiler
-               run_model_command[-3] = model_name
-               run_model_command[-1] = str(batch_size)
+                print(f'{compiler}_{model_name}_{batch_size}:')
+
+                run_model_command[-5] = compiler
+                run_model_command[-3] = model_name
+                run_model_command[-1] = str(batch_size)
                
-               command = run_model_command + ['--print_time', 'true']
-               subprocess.run(command)
+                command = run_model_command + ['--print_time', 'true']
+                subprocess.run(command)
 
-               sm_log_file =  f'logs/{compiler}_{model_name}_{batch_size}_sm.log'
-               nvprof_command[-1] = sm_log_file
+                sm_log_file =  f'logs/{compiler}_{model_name}_{batch_size}_sm.log'
+                nvprof_command[-1] = sm_log_file
 
-               command = nvprof_command + nvprof_metrics + run_model_command
-               subprocess.run(command)
+                command = nvprof_command + nvprof_metrics + run_model_command
+                subprocess.run(command)
 
-               log_file = f'logs/{compiler}_{model_name}_{batch_size}.log'
-               nvprof_command[-1] = log_file
-               command = nvprof_command + run_model_command
-               subprocess.run(command)
+                log_file = f'logs/{compiler}_{model_name}_{batch_size}.log'
+                nvprof_command[-1] = log_file
+                command = nvprof_command + run_model_command
+                subprocess.run(command)
 
-               log_files.append((sm_log_file, log_file))
+                log_files.append((sm_log_file, log_file))
 
-               extracted_file = nvlog.extract.extract_kernel_tf(log_file, sm_log_file)
-               active_ratio, time = nvlog.process.process_log(extracted_file)
-               name = log_file.rstrip('.log').lstrip('logs/')
-               print(f'{name}: {active_ratio} {time}')
+                extracted_file = nvlog.extract.extract_kernel_tf(log_file, sm_log_file)
+                active_ratio, kernel_time = nvlog.process.process_log(extracted_file)
+                print(f'active ratio: {active_ratio}')
+                print(f'kernel time: {kernel_time / 1e6}')
