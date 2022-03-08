@@ -13,15 +13,17 @@ def process_log(extracted_file: str):
     utilization_varieties = sorted(utilization_varieties)
     utilization = 0.
     weighted_utilization = 0.
+    kernel_time = 0.
     total_time = 0.
     overlaps = 0
     prev_time = utilization_varieties[0][0]
     for time, variety in utilization_varieties:
         if overlaps > 0:
             weighted_utilization += utilization * (time - prev_time)
-            total_time += time - prev_time
+            kernel_time += time - prev_time
+        total_time += time - prev_time
         overlaps += 1 if variety > 0 else -1
         utilization += variety 
         prev_time = time
 
-    return weighted_utilization / total_time, total_time
+    return weighted_utilization / total_time, kernel_time
