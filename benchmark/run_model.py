@@ -15,7 +15,7 @@ sys.path.append(ROOT_PATH)
 import utils
 from utils import cuda
 
-def get_compiled(model_name, compiler, tvm_assign_method):
+def get_compiled(model_name, compiler, tvm_assign_method, batch_size):
     model = utils.tf.model.select_model(model_name)
     input_shape = (batch_size, 224, 224, 3)
     tf_func = tf.function(lambda x : model.call(x, training=False),
@@ -32,8 +32,11 @@ def get_compiled(model_name, compiler, tvm_assign_method):
             os.system('mkdir -p tvm_cache')
             utils.tvm.util.save(json, lib, params, tvm_cache)
 
+        extracted_path = f'./logs/{compiler}_{model_name}_{tvm_assign_method}_{batch_size}.extracted.log'
         # generate assign.json file 
-        os.system(f'python ../stream_assignment/stream_assignment.py --json_path {tvm_cache}.json --method {tvm_assign_method}')
+        os.system(f'python ../stream_assignment/stream_assignment.py --json_path {tvm_cache}.json '
+                                                                    f'--extracted_file {extracted_path} ' 
+                                                                    f'--method {tvm_assign_method}')
         json, lib, param = utils.tvm.util.load(tvm_cache)
         dev = tvm.cuda(0)
         
@@ -78,7 +81,7 @@ if __name__ == '__main__':
     except:
         exit(1)
 
-    predictor = get_compiled(model_name, compiler, tvm_assign_method)
+    predictor = get_compiled(model_name, compiler, tvm_assign_method, batch_size)
     xs = np.random.rand(max(n, warm_size), 224, 224, 3)
 
     if warmup:
