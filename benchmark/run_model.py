@@ -15,7 +15,7 @@ sys.path.append(ROOT_PATH)
 import utils
 from utils import cuda
 
-def get_compiled(model_name, compiler):
+def get_compiled(model_name, compiler, tvm_assign_method):
     model = utils.tf.model.select_model(model_name)
     input_shape = (batch_size, 224, 224, 3)
     tf_func = tf.function(lambda x : model.call(x, training=False),
@@ -33,7 +33,7 @@ def get_compiled(model_name, compiler):
             utils.tvm.util.save(json, lib, params, tvm_cache)
 
         # generate assign.json file 
-        os.system(f'python ../stream_assignment/stream_assignment.py --json_path {tvm_cache}.json')
+        os.system(f'python ../stream_assignment/stream_assignment.py --json_path {tvm_cache}.json --method {tvm_assign_method}')
         json, lib, param = utils.tvm.util.load(tvm_cache)
         dev = tvm.cuda(0)
         
@@ -57,6 +57,7 @@ if __name__ == '__main__':
     parser.add_argument('--compiler', type=str, default='tf', help='compiler to compile the model')
     parser.add_argument('--warmup', type=bool, default=False, help='use 100 inputs to warm up for jit')
     parser.add_argument('--print_time', type=bool, default=False)
+    parser.add_argument('--tvm_assign_method', type=str, default='default')
     args = vars(parser.parse_args())
 
     n = args['n']
@@ -65,6 +66,7 @@ if __name__ == '__main__':
     compiler = args['compiler']
     warmup = args['warmup']
     print_time = args['print_time']
+    tvm_assign_method = args['tvm_assign_method']
 
     n = (n + batch_size - 1) // batch_size * batch_size
     warm_size = (100 + batch_size - 1) // batch_size * batch_size
@@ -76,7 +78,7 @@ if __name__ == '__main__':
     except:
         exit(1)
 
-    predictor = get_compiled(model_name, compiler)
+    predictor = get_compiled(model_name, compiler, tvm_assign_method)
     xs = np.random.rand(max(n, warm_size), 224, 224, 3)
 
     if warmup:

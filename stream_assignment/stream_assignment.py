@@ -75,12 +75,20 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('--json_path', type=str, help='tvm json file path')
     parser.add_argument('--extracted_file', type=str, default='', help='tvm json file path')
+    parser.add_argument('--method', type=str, default='default')
     args = vars(parser.parse_args())
 
     json_path = args['json_path']
     extracted_file = args['extracted_file']
+    method = args['method']
+    assign_method = default_assign
+    if method == 'wavefront':
+        assign_method = wavefront_assign
+    elif method == 'test':
+        assign_method = test_assign
+
     file_name = json_path.split('/')[-1].split('.')[0] + '_assignment.json'
 
     f = open(json_path)
     json_dict = json.load(f)
-    assign_stream(json_dict, default_assign, extracted_file)
+    assign_stream(json_dict, assign_method, extracted_file)
