@@ -24,7 +24,7 @@ def default_assign(json_dict, graph, assigner):
 
 def fill_stage(graph, threshold):
     curLevel = graph.ready_nodes()
-    utilizations = [graph.get_utilization(id) for id in curLevel]
+    utilizations = [int(graph.get_utilization(id)) for id in curLevel]
     if max(utilizations) >= threshold:
         return [curLevel[max(enumerate(utilizations), key=lambda x : x[1])[0]]]
 
@@ -53,7 +53,7 @@ def fill_stage(graph, threshold):
     return result
     
 # profiled based
-def test_assign(json_dict, graph, assigner, threshold=70):
+def test_assign(json_dict, graph, assigner, threshold=140):
     emit_order = 0
     wait_list = []
     # BFS
