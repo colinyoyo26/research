@@ -12,24 +12,6 @@ from utils import nvlog
 from assigner import Assigner
 from graph import Graph
 
-# wavefront
-def wavefront_assign(json_dict, graph, assigner):
-    wait_list = []
-    emit_order = 0
-
-    # BFS
-    while not graph.is_empty():
-        curLevel = graph.ready_nodes()
-        size = len(curLevel)
-        for i in range(size):
-            cur_id = curLevel[i]
-            graph.consume(cur_id)
-            assigner.set_stream_id(cur_id, i)
-            assigner.set_emit_order(cur_id, emit_order)
-            assigner.set_wait_list(cur_id, wait_list)
-            emit_order += 1
-        wait_list = curLevel
-
 def default_assign(json_dict, graph, assigner):
     num_node = len(json_dict['nodes'])
     cnt = 0
@@ -40,7 +22,7 @@ def default_assign(json_dict, graph, assigner):
             assigner.set_emit_order(i, cnt)
             cnt += 1
 
-def fill_stage(graph, threshold=50):
+def fill_stage(graph, threshold):
     curLevel = graph.ready_nodes()
     utilizations = [graph.get_utilization(id) for id in curLevel]
     if max(utilizations) >= threshold:
@@ -71,12 +53,12 @@ def fill_stage(graph, threshold=50):
     return result
     
 # profiled based
-def test_assign(json_dict, graph, assigner):
+def test_assign(json_dict, graph, assigner, threshold=70):
     emit_order = 0
     wait_list = []
     # BFS
     while not graph.is_empty():
-        node_ids = fill_stage(graph)    
+        node_ids = fill_stage(graph, threshold)    
         for i in range(len(node_ids)):
             id = node_ids[i]
             graph.consume(id)
@@ -85,6 +67,10 @@ def test_assign(json_dict, graph, assigner):
             assigner.set_emit_order(id, emit_order)
             emit_order += 1
         wait_list = node_ids
+
+# wavefront
+def wavefront_assign(json_dict, graph, assigner):
+    test_assign(json_dict, graph, assigner, 10000)
 
 
 def assign_stream(json_dict, assign_func, extracted_file):
