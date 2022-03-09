@@ -1,6 +1,8 @@
 class Graph:
-    def __init__(self, json_dict):
+    def __init__(self, json_dict, kernel_info):
         num_node = len(json_dict['nodes'])
+        self.kernel_info = kernel_info
+        self.nodes = json_dict['nodes']
         self.adjList = [[] for _ in range(num_node)]
         self.inDegree = [0] * num_node
         for cur_id in range(num_node):
@@ -23,6 +25,18 @@ class Graph:
             if self.inDegree[output_id] == 0:
                 self.ready_list.add(output_id)
         self.ready_list.remove(id)
+
+    def kernel_name(self, id):
+        key = 'attr'
+        if key not in self.nodes[id].keys():
+            key = 'attrs'
+        return self.nodes[id][key]['func_name']
+
+    def get_utilization(self, id):
+        return int(self.kernel_info[self.kernel_name(id)][0])
+
+    def get_duration(self, id):
+        return self.kernel_info[self.kernel_name(id)][1]
 
     def is_empty(self):
         return len(self.ready_list) == 0
