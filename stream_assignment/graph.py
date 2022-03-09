@@ -33,10 +33,15 @@ class Graph:
         return self.nodes[id][key]['func_name']
 
     def get_utilization(self, id):
-        return int(self.kernel_info[self.kernel_name(id)][0])
+        kernel_name = self.kernel_name(id)
+        assert kernel_name in self.kernel_info.keys()
+        return int(self.kernel_info[kernel_name][0])
 
     def get_duration(self, id):
-        return self.kernel_info[self.kernel_name(id)][1]
+        kernel_name = self.kernel_name(id)
+        assert kernel_name in self.kernel_info.keys()
+        return int(self.kernel_info[kernel_name][1])
+
 
     def is_empty(self):
         return len(self.ready_list) == 0
