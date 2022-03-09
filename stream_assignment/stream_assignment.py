@@ -13,7 +13,7 @@ from assigner import Assigner
 from graph import Graph
 
 # wavefront
-def wavefront_assign(json_dict, graph, assigner, extracted_file=''):
+def wavefront_assign(json_dict, graph, assigner):
     wait_list = []
     emit_order = 0
 
@@ -30,7 +30,7 @@ def wavefront_assign(json_dict, graph, assigner, extracted_file=''):
             emit_order += 1
         wait_list = curLevel
 
-def default_assign(json_dict, graph, assigner, extracted_file):
+def default_assign(json_dict, graph, assigner):
     num_node = len(json_dict['nodes'])
     cnt = 0
     for i in range(num_node):
@@ -40,18 +40,59 @@ def default_assign(json_dict, graph, assigner, extracted_file):
             assigner.set_emit_order(i, cnt)
             cnt += 1
 
+def fill_stage(graph, threshold=50):
+    curLevel = graph.ready_nodes()
+    utilizations = [graph.get_utilization(id) for id in curLevel]
+    if max(utilizations) >= threshold:
+        return [curLevel[max(enumerate(utilizations), key=lambda x : x[1])[0]]]
+
+    n = len(curLevel)
+    prev_dp = [0] * (threshold + 1)
+    record = [[False] * (threshold + 1) for _ in range(n)]
+    for i in range(1, n + 1, 1):
+        cur_dp = [0] * (threshold + 1)
+        # can't have 0 utilization
+        w = utilizations[i - 1] = max(utilizations[i - 1], 1)
+        for j in range(threshold + 1):
+            cur_dp[j] = prev_dp[j]
+            if j >= w and w + prev_dp[j - w] > cur_dp[j]:
+                cur_dp[j] = w + prev_dp[j - w]
+                record[i - 1][j] = True
+        prev_dp = cur_dp
+    
+    assert prev_dp[threshold] > 0 or print(utilizations)
+    result = []
+    remain = threshold
+    for i in range(n - 1, -1, -1):
+        if record[i][remain]:
+            result.append(curLevel[i])
+            remain -= utilizations[i]
+    assert threshold - remain == prev_dp[threshold] or print(threshold - remain, prev_dp[threshold])
+    return result
+    
 # profiled based
-def test_assign(json_dict, graph, assigner, extracted_file):
-    kernel_info = nvlog.info.get_kernel_info(extracted_file)
-    print(kernel_info)
+def test_assign(json_dict, graph, assigner):
+    emit_order = 0
+    wait_list = []
+    # BFS
+    while not graph.is_empty():
+        node_ids = fill_stage(graph)    
+        for i in range(len(node_ids)):
+            id = node_ids[i]
+            graph.consume(id)
+            assigner.set_wait_list(id, wait_list)
+            assigner.set_stream_id(id, i)
+            assigner.set_emit_order(id, emit_order)
+            emit_order += 1
+        wait_list = node_ids
+
 
 def assign_stream(json_dict, assign_func, extracted_file):
-    num_node = len(json_dict['nodes'])
-
-    graph = Graph(json_dict)
+    kernel_info = nvlog.info.get_kernel_info(extracted_file)
+    graph = Graph(json_dict, kernel_info)
     assigner = Assigner(json_dict)
 
-    assign_func(json_dict, graph, assigner, extracted_file)
+    assign_func(json_dict, graph, assigner)
     assigner.save_assignment()
 
 if __name__ == '__main__':
