@@ -21,6 +21,6 @@ def save(json, lib, params, path):
 def load(path):
     lib = tvm.runtime.load_module(path + '.so')
     json = open(path + '.json').read()
-    param_bytes = open(path + '.params', 'rb').read()
-    params =  tvm.runtime.load_param_dict(param_bytes)
+    params = open(path + '.params', 'rb').read()
+    #params =  tvm.runtime.load_param_dict(param_bytes)
     return json, lib, params
