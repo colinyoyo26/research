@@ -9,17 +9,16 @@ ROOT_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..')
 sys.path.append(ROOT_PATH)
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 from utils import nvlog
-from assigner import Assigner
 from graph import Graph
 
-def default_assign(json_dict, graph, assigner):
+def default_assign(json_dict, graph):
     num_node = len(json_dict['nodes'])
     cnt = 0
     for i in range(num_node):
         if json_dict['nodes'][i]['op'] == 'tvm_op':
-            assigner.set_stream_id(i, 0)
-            assigner.set_wait_list(i, [])
-            assigner.set_emit_order(i, cnt)
+            graph.set_stream_id(i, 0)
+            graph.set_wait_list(i, [])
+            graph.set_emit_order(i, cnt)
             cnt += 1
 
 def fill_stage(graph, threshold):
@@ -53,7 +52,7 @@ def fill_stage(graph, threshold):
     return result
     
 # profiled based
-def test_assign(json_dict, graph, assigner, threshold=140):
+def test_assign(json_dict, graph, threshold=140):
     emit_order = 0
     wait_list = []
     # BFS
@@ -62,24 +61,23 @@ def test_assign(json_dict, graph, assigner, threshold=140):
         for i in range(len(node_ids)):
             id = node_ids[i]
             graph.consume(id)
-            assigner.set_wait_list(id, wait_list)
-            assigner.set_stream_id(id, i)
-            assigner.set_emit_order(id, emit_order)
+            graph.set_wait_list(id, wait_list)
+            graph.set_stream_id(id, i)
+            graph.set_emit_order(id, emit_order)
             emit_order += 1
         wait_list = node_ids
 
 # wavefront
-def wavefront_assign(json_dict, graph, assigner):
-    test_assign(json_dict, graph, assigner, 10000)
+def wavefront_assign(json_dict, graph):
+    test_assign(json_dict, graph, 10000)
 
 
 def assign_stream(json_dict, assign_func, extracted_file):
     kernel_info = nvlog.info.get_kernel_info(extracted_file)
     graph = Graph(json_dict, kernel_info)
-    assigner = Assigner(json_dict)
 
-    assign_func(json_dict, graph, assigner)
-    assigner.save_assignment()
+    assign_func(json_dict, graph)
+    graph.save_assignment()
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
