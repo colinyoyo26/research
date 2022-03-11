@@ -13,13 +13,9 @@ from graph import Graph
 
 def default_assign(json_dict, graph):
     num_node = len(json_dict['nodes'])
-    cnt = 0
     for i in range(num_node):
         if json_dict['nodes'][i]['op'] == 'tvm_op':
-            graph.set_stream_id(i, 0)
-            graph.set_wait_list(i, [])
-            graph.set_emit_order(i, cnt)
-            cnt += 1
+            graph.emit_node(i, 0, [])
 
 def fill_stage(graph, threshold):
     curLevel = graph.ready_nodes()
@@ -51,20 +47,14 @@ def fill_stage(graph, threshold):
     assert threshold - remain == prev_dp[threshold] or print(threshold - remain, prev_dp[threshold])
     return result
 
-import random
 # profiled based
 def test_assign(json_dict, graph, threshold=200):
-    emit_order = 0
     wait_list = []
     # BFS
     while not graph.is_empty():
         node_ids = fill_stage(graph, threshold)    
         for i, id in enumerate(node_ids):
-            graph.consume(id)
-            graph.set_wait_list(id, wait_list)
-            graph.set_stream_id(id, i)
-            graph.set_emit_order(id, emit_order)
-            emit_order += 1
+            graph.emit_node(id, i, wait_list)
         wait_list = node_ids
 
 # wavefront
@@ -105,7 +95,6 @@ if __name__ == '__main__':
     assign_stream(json_dict, assign_method, extracted_file)
 
     # make storage to be correct in a brute force way
-    import json
     for i in range(len(json_dict['attrs']['storage_id'][1])):
         json_dict['attrs']['storage_id'][1][i] = i
     s = json.dumps(json_dict, indent=2)
