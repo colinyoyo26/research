@@ -50,16 +50,16 @@ def fill_stage(graph, threshold):
             remain -= utilizations[i]
     assert threshold - remain == prev_dp[threshold] or print(threshold - remain, prev_dp[threshold])
     return result
-    
+
+import random
 # profiled based
-def test_assign(json_dict, graph, threshold=140):
+def test_assign(json_dict, graph, threshold=200):
     emit_order = 0
     wait_list = []
     # BFS
     while not graph.is_empty():
         node_ids = fill_stage(graph, threshold)    
-        for i in range(len(node_ids)):
-            id = node_ids[i]
+        for i, id in enumerate(node_ids):
             graph.consume(id)
             graph.set_wait_list(id, wait_list)
             graph.set_stream_id(id, i)
@@ -71,6 +71,9 @@ def test_assign(json_dict, graph, threshold=140):
 def wavefront_assign(json_dict, graph):
     test_assign(json_dict, graph, 10000)
 
+def test_assign2(json_dict, graph):
+    emit_order = 0
+    wait_list = []
 
 def assign_stream(json_dict, assign_func, extracted_file):
     kernel_info = nvlog.info.get_kernel_info(extracted_file)
@@ -100,3 +103,10 @@ if __name__ == '__main__':
     f = open(json_path)
     json_dict = json.load(f)
     assign_stream(json_dict, assign_method, extracted_file)
+
+    # make storage to be correct in a brute force way
+    import json
+    for i in range(len(json_dict['attrs']['storage_id'][1])):
+        json_dict['attrs']['storage_id'][1][i] = i
+    s = json.dumps(json_dict, indent=2)
+    open(json_path, 'w').write(s)
