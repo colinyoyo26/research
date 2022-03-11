@@ -32,20 +32,22 @@ def get_compiled(model_name, compiler, tvm_assign_method, batch_size):
             os.system('mkdir -p tvm_cache')
             utils.tvm.util.save(json, lib, params, tvm_cache)
 
-        extracted_path = f'./logs/{compiler}_{model_name}_{tvm_assign_method}_{batch_size}.extracted.log'
+        extracted_path = f'./logs/{compiler}_{model_name}_default_{batch_size}.extracted.log'
         # generate assign.json file 
         os.system(f'python ../stream_assignment/stream_assignment.py --json_path {tvm_cache}.json '
                                                                     f'--extracted_file {extracted_path} ' 
                                                                     f'--method {tvm_assign_method}')
-        json, lib, param = utils.tvm.util.load(tvm_cache)
+        json, lib, params = utils.tvm.util.load(tvm_cache)
         dev = tvm.cuda(0)
         
         if compiler == 'tvm':
             executor = graph_executor.create(json, lib, dev)
+            executor.load_params(params)
         elif compiler == 'tvm_cuda_graph':
             executor = cuda_graph_executor.create(json, lib, dev)
         
-        compiled = lambda x : executor.run()
+        output_shape = (batch_size, 1000)
+        compiled = lambda x : (executor.set_input('x', x), executor.run(), executor.get_output(0))[2]
 
     else:
         exit(1)
@@ -61,6 +63,7 @@ if __name__ == '__main__':
     parser.add_argument('--warmup', type=bool, default=False, help='use 100 inputs to warm up for jit')
     parser.add_argument('--print_time', type=bool, default=False)
     parser.add_argument('--tvm_assign_method', type=str, default='default')
+    parser.add_argument('--print_res', type=bool, default=False)
     args = vars(parser.parse_args())
 
     n = args['n']
@@ -70,6 +73,7 @@ if __name__ == '__main__':
     warmup = args['warmup']
     print_time = args['print_time']
     tvm_assign_method = args['tvm_assign_method']
+    print_res = args['print_res']
 
     n = (n + batch_size - 1) // batch_size * batch_size
     warm_size = (100 + batch_size - 1) // batch_size * batch_size
@@ -83,6 +87,7 @@ if __name__ == '__main__':
 
     predictor = get_compiled(model_name, compiler, tvm_assign_method, batch_size)
     xs = np.random.rand(max(n, warm_size), 224, 224, 3)
+    xs = np.ones_like(xs) * 3
 
     if warmup:
         for i in range(0, warm_size, batch_size):
@@ -92,10 +97,12 @@ if __name__ == '__main__':
     
     cuda.rt.prof_start()
     for i in range(0, n, batch_size):
-        predictor(xs[i: i + batch_size])
+        res = predictor(xs[i: i + batch_size])
     cuda.rt.prof_stop()
 
     elapsed = time.time() - start_time
     if print_time:
         print('elapsed: ', elapsed)
+    if print_res:    
+        print(res)
 

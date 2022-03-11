@@ -7,9 +7,9 @@ sys.path.append(ROOT_PATH)
 from utils import nvlog
 
 model_names = ['NASNetMobile']
-batch_sizes = [1, 32]
-compilers = ['tvm', 'tf']
-tvm_assign_methods = ['default', 'wavefront']
+batch_sizes = [1]
+compilers = ['tvm']
+tvm_assign_methods = ['test', 'default']
 nr_inputs = 1
 
 def doit(compiler, model_name, tvm_assign_method, batch_size):
