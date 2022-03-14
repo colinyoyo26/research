@@ -47,21 +47,30 @@ def fill_stage(graph, threshold):
     assert threshold - remain == prev_dp[threshold] or print(threshold - remain, prev_dp[threshold])
     return result
 
-# profiled based
-def test_assign(graph, threshold=70):
-    wait_list = []
-
+# profiled based / non stage
+def method1_assign(graph, threshold=100):
     while not graph.is_empty():
         node_ids = fill_stage(graph, threshold)    
         for i, id in enumerate(node_ids):
             graph.emit_node(id, i, graph.get_inputs(id))
+        
+
+# profile based / stage 
+def method1_stage_assign(graph, threshold=100):
+    wait_list = []
+    while not graph.is_empty():
+        node_ids = fill_stage(graph, threshold)    
+        for i, id in enumerate(node_ids):
+            graph.emit_node(id, i, wait_list)
         wait_list = node_ids
-
-
 
 # wavefront
 def wavefront_assign(graph):
-    test_assign(graph, 10000)
+    method1_assign(graph, 10000)
+
+# wavefront / stage
+def wavefront_stage_assign(graph):
+    method1_stage_assign(graph, 10000)
 
 def assign_stream(json_dict, assign_func, extracted_file):
     kernel_info = nvlog.info.get_kernel_info(extracted_file)
@@ -69,6 +78,16 @@ def assign_stream(json_dict, assign_func, extracted_file):
 
     assign_func(graph)
     graph.save_assignment()
+
+def get_assign_method(method):
+    methods = {'wavefront': wavefront_assign,
+               'wavefront_stage': wavefront_stage_assign,
+               'method1': method1_assign,
+               'method1_stage': method1_stage_assign}
+    assign_method = methods.get(method)
+    if not assign_method:
+        assign_method = default_assign
+    return assign_method
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
@@ -80,11 +99,7 @@ if __name__ == '__main__':
     json_path = args['json_path']
     extracted_file = args['extracted_file']
     method = args['method']
-    assign_method = default_assign
-    if method == 'wavefront':
-        assign_method = wavefront_assign
-    elif method == 'test':
-        assign_method = test_assign
+    assign_method = get_assign_method(method)
 
     file_name = json_path.split('/')[-1].split('.')[0] + '_assignment.json'
 
