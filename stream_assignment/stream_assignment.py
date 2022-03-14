@@ -12,6 +12,7 @@ sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 from utils import nvlog
 from graph import Graph
 from method1 import method1_assign, method1_stage_assign
+from method2 import method2_assign
 
 def default_assign(graph):
     while not graph.is_empty():
@@ -37,7 +38,8 @@ def get_assign_method(method):
     methods = {'wavefront': wavefront_assign,
                'wavefront_stage': wavefront_stage_assign,
                'method1': method1_assign,
-               'method1_stage': method1_stage_assign}
+               'method1_stage': method1_stage_assign,
+               'method2': method2_assign}
     assign_method = methods.get(method)
     if not assign_method:
         assign_method = default_assign
