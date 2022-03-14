@@ -28,7 +28,10 @@ def wavefront_stage_assign(graph):
     method1_stage_assign(graph, 10000)
 
 def assign_stream(json_dict, assign_func, extracted_file):
-    kernel_info = nvlog.info.get_kernel_info(extracted_file)
+    if assign_func == default_assign:
+        kernel_info = defaultdict(lambda : [0, 0])
+    else:
+        kernel_info = nvlog.info.get_kernel_info(extracted_file)
     graph = Graph(json_dict, kernel_info)
 
     assign_func(graph)
