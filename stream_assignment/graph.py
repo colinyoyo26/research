@@ -44,7 +44,8 @@ class Graph:
             inputs = cur_node['inputs']
             self.nodes[cur_id].ref_cnt = len(inputs)
             for input_id, _, _ in inputs:
-                self.nodes[cur_id].inputs.append(input_id)
+                if input_id not in json_dict['arg_nodes']:
+                    self.nodes[cur_id].inputs.append(input_id)
                 self.nodes[input_id].outputs.append(cur_id)
         
         self.ready_list = set(json_dict['arg_nodes'])

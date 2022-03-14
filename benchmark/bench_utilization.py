@@ -9,7 +9,7 @@ from utils import nvlog
 model_names = ['NASNetMobile']
 batch_sizes = [1]
 compilers = ['tvm']
-tvm_assign_methods = ['test', 'default']
+tvm_assign_methods = ['wavefront','method1']
 nr_inputs = 1
 
 def doit(compiler, model_name, tvm_assign_method, batch_size):
@@ -19,15 +19,11 @@ def doit(compiler, model_name, tvm_assign_method, batch_size):
         '--profile-from-start', 'off', '--log-file', '']
     nvprof_metrics = ['--metrics', 'sm_efficiency,achieved_occupancy']
     run_model_command = [python, 'run_model.py', '--n', str(nr_inputs),
-        '--warmup', 'true', '--tvm_assign_method', '', '--compiler', '','--model_name', '', '--batch_size', '']
+        '--warmup', 'true', '--tvm_assign_method', tvm_assign_method, 
+        '--compiler', compiler,'--model_name', model_name, '--batch_size', str(batch_size)]
 
     print(f'{compiler}_{model_name}_{tvm_assign_method}_{batch_size}:')
 
-    run_model_command[-7] = tvm_assign_method
-    run_model_command[-5] = compiler
-    run_model_command[-3] = model_name
-    run_model_command[-1] = str(batch_size)
-                
     command = run_model_command + ['--print_time', 'true']
     subprocess.run(command)
 

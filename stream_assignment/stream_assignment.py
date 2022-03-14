@@ -54,8 +54,10 @@ def test_assign(graph, threshold=70):
     while not graph.is_empty():
         node_ids = fill_stage(graph, threshold)    
         for i, id in enumerate(node_ids):
-            graph.emit_node(id, i, wait_list)
+            graph.emit_node(id, i, graph.get_inputs(id))
         wait_list = node_ids
+
+
 
 # wavefront
 def wavefront_assign(graph):
