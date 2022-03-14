@@ -60,6 +60,9 @@ class Graph:
     def kernel_name(self, id):
         return self.nodes[id].func_name
 
+    def get_num_nodes(self):
+        return self.num_node
+
     def get_inputs(self, id):
         return copy.deepcopy(self.nodes[id].inputs)
 

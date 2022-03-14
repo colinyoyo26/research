@@ -4,6 +4,7 @@ import json
 import argparse
 import copy
 from collections import defaultdict
+import heapq
 
 ROOT_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..')
 sys.path.append(ROOT_PATH)
@@ -11,11 +12,10 @@ sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 from utils import nvlog
 from graph import Graph
 
-def default_assign(json_dict, graph):
-    num_node = len(json_dict['nodes'])
-    for i in range(num_node):
-        if json_dict['nodes'][i]['op'] == 'tvm_op':
-            graph.emit_node(i, 0, [])
+def default_assign(graph):
+    while not graph.is_empty():
+        for id in graph.ready_nodes():
+            graph.emit_node(id, 0, [])
 
 def fill_stage(graph, threshold):
     curLevel = graph.ready_nodes()
@@ -48,9 +48,9 @@ def fill_stage(graph, threshold):
     return result
 
 # profiled based
-def test_assign(json_dict, graph, threshold=200):
+def test_assign(graph, threshold=70):
     wait_list = []
-    # BFS
+
     while not graph.is_empty():
         node_ids = fill_stage(graph, threshold)    
         for i, id in enumerate(node_ids):
@@ -58,18 +58,14 @@ def test_assign(json_dict, graph, threshold=200):
         wait_list = node_ids
 
 # wavefront
-def wavefront_assign(json_dict, graph):
-    test_assign(json_dict, graph, 10000)
-
-def test_assign2(json_dict, graph):
-    emit_order = 0
-    wait_list = []
+def wavefront_assign(graph):
+    test_assign(graph, 10000)
 
 def assign_stream(json_dict, assign_func, extracted_file):
     kernel_info = nvlog.info.get_kernel_info(extracted_file)
     graph = Graph(json_dict, kernel_info)
 
-    assign_func(json_dict, graph)
+    assign_func(graph)
     graph.save_assignment()
 
 if __name__ == '__main__':
