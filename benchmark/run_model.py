@@ -15,15 +15,24 @@ sys.path.append(ROOT_PATH)
 import utils
 from utils import cuda
 
-def get_compiled(model_name, compiler, tvm_assign_method, batch_size):
+def run_tvm(executor, x):
+    executor.set_input('x', x)
+    executor.run()
+    return executor.get_output(0)
+
+def run_tf(executor, x):
+    return executor(x)
+
+def get_executor(model_name, compiler, tvm_assign_method, batch_size):
     model = utils.tf.model.select_model(model_name)
     input_shape = (batch_size, 224, 224, 3)
     tf_func = tf.function(lambda x : model.call(x, training=False),
         input_signature=[tf.TensorSpec(input_shape, tf.float32)],
         jit_compile=False)
 
+    executor = None
     if compiler == 'tf':
-        compiled = tf_func
+        executor = tf_func
 
     elif compiler in ['tvm', 'tvm_cuda_graph']:
         tvm_cache = f'./tvm_cache/{model_name}_{batch_size}'
@@ -46,13 +55,9 @@ def get_compiled(model_name, compiler, tvm_assign_method, batch_size):
         elif compiler == 'tvm_cuda_graph':
             executor = cuda_graph_executor.create(json, lib, dev)
         
-        output_shape = (batch_size, 1000)
-        compiled = lambda x : (executor.set_input('x', x), executor.run(), executor.get_output(0))[2]
+    assert executor or print(model_name)
 
-    else:
-        exit(1)
-
-    return compiled
+    return executor
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
@@ -85,19 +90,21 @@ if __name__ == '__main__':
     except:
         exit(1)
 
-    predictor = get_compiled(model_name, compiler, tvm_assign_method, batch_size)
+    executor = get_executor(model_name, compiler, tvm_assign_method, batch_size)
+    run = run_tf if compiler == 'if' else run_tvm
+
     xs = np.random.rand(max(n, warm_size), 224, 224, 3)
-    xs = np.ones_like(xs) * 3
+    xs = np.ones_like(xs)
 
     if warmup:
         for i in range(0, warm_size, batch_size):
-            predictor(xs[i: i + batch_size])
+            run(executor, xs[i: i + batch_size])
 
     start_time = time.time()
     
     cuda.rt.prof_start()
     for i in range(0, n, batch_size):
-        res = predictor(xs[i: i + batch_size])
+        res = run(executor, xs[i: i + batch_size])
     cuda.rt.prof_stop()
 
     elapsed = time.time() - start_time
