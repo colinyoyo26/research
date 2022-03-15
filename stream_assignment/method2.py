@@ -30,20 +30,24 @@ def fill_stage(graph, max_utilization, max_duration):
         return True
 
     heapq.heapify(stream_info)
-    has_candidate = True
     
-    while has_candidate:
+    while True:
         has_candidate = False
         info = heapq.heappop(stream_info)
-        for id in graph_copy.ready_nodes():
-            if can_assign_to_stream(id, info):
-                new_utilization = max(info[1], graph.get_utilization(id))
-                total_utilization += new_utilization - info[1] 
-                info[0] += graph.get_duration(id)
-                info[1] = new_utilization
-                info[2].append(id)
-                graph_copy.emit_node(id, 0, [])
-                has_candidate = True
+        candidates = [id for id in graph_copy.ready_nodes() if can_assign_to_stream(id, info)]
+        
+        if not candidates:
+            break
+        
+        id = max(candidates, key=lambda id : graph.get_duration(id))
+        
+        new_utilization = max(info[1], graph.get_utilization(id))
+        total_utilization += new_utilization - info[1] 
+        info[0] += graph.get_duration(id)
+        info[1] = new_utilization
+        info[2].append(id)
+        graph_copy.emit_node(id, 0, [])
+        
         heapq.heappush(stream_info, info)
                 
     return [info[2] for info in stream_info]
