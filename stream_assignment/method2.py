@@ -8,13 +8,14 @@ import heapq
 def fill_stage(graph, max_utilization, max_duration):
     graph_copy = copy.deepcopy(graph)
     nodes = method1.fill_stage(graph, max_utilization)
+    total_utilization = sum([graph.get_utilization(id) for id in nodes])
+
     if len(nodes) == 1:
         return [nodes]
     stream_info = [[graph.get_duration(id), 
                     graph.get_utilization(id),
                     [id]] 
                     for id in nodes]
-    total_utilization = sum([graph.get_utilization(id) for id in nodes])
     for id in nodes:
         graph_copy.emit_node(id, 0, [])
 
@@ -53,12 +54,14 @@ def fill_stage(graph, max_utilization, max_duration):
     return [info[2] for info in stream_info]
 
 # profiled based / non stage
-def method2_assign(graph, max_utilization=100, max_duration=100):
+def method2_assign(graph, max_utilization=150, max_duration=400):
     wait_list = []
     while not graph.is_empty():
         node_ids = fill_stage(graph, max_utilization, max_duration)
-        for i, ids in enumerate(node_ids):
-            for id in ids:
-                w = wait_list if not i else []
-                graph.emit_node(id, i, w)
+        max_len = max([len(ids) for ids in node_ids])
+        for i in range(max_len):
+            for sid, ids in enumerate(node_ids):
+                if i < len(ids):
+                    w = wait_list if i == 0 else []
+                    graph.emit_node(ids[i], sid, w)
         wait_list = [ids[-1] for ids in node_ids]
