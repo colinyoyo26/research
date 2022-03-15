@@ -8,3 +8,4 @@ savedmodel/
 tvm_cache/
 logs/
 stream_assignment/*json
+verify/*outputs/

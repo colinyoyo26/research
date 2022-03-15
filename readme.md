@@ -22,3 +22,9 @@ $ export TVM_HOME=third_party/tvm
 ```
 $ sudo PYTHONPATH=$TVM_HOME/python:${PYTHONPATH} LD_LIBRARY_PATH=$LD_LIBRARY_PATH PATH=$PATH bash -c "$(which python) benchmark/bench_utilization.py"
 ```
+
+## verify
+
+```
+sudo PYTHONPATH=$TVM_HOME/python:${PYTHONPATH} LD_LIBRARY_PATH=$LD_LIBRARY_PATH PATH=$PATH bash -c "$(which python) verify/verify.py"
+```

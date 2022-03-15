@@ -9,6 +9,7 @@ import argparse
 import time
 import sys
 import os
+import json
 
 ROOT_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..')
 sys.path.append(ROOT_PATH)
@@ -68,7 +69,8 @@ if __name__ == '__main__':
     parser.add_argument('--warmup', type=bool, default=False, help='use 100 inputs to warm up for jit')
     parser.add_argument('--print_time', type=bool, default=False)
     parser.add_argument('--tvm_assign_method', type=str, default='default')
-    parser.add_argument('--print_res', type=bool, default=False)
+    parser.add_argument('--save_res', type=bool, default=False)
+    parser.add_argument('--save_dir', type=str, default='')
     args = vars(parser.parse_args())
 
     n = args['n']
@@ -78,7 +80,8 @@ if __name__ == '__main__':
     warmup = args['warmup']
     print_time = args['print_time']
     tvm_assign_method = args['tvm_assign_method']
-    print_res = args['print_res']
+    save_res = args['save_res']
+    save_dir = args['save_dir']
 
     n = (n + batch_size - 1) // batch_size * batch_size
     warm_size = (100 + batch_size - 1) // batch_size * batch_size
@@ -102,14 +105,17 @@ if __name__ == '__main__':
 
     start_time = time.time()
     
+    res = []
     cuda.rt.prof_start()
     for i in range(0, n, batch_size):
-        res = run(executor, xs[i: i + batch_size])
+        res.append(run(executor, xs[i: i + batch_size]))
     cuda.rt.prof_stop()
 
     elapsed = time.time() - start_time
     if print_time:
         print('elapsed: ', elapsed)
-    if print_res:    
-        print(res)
+    if save_res:
+        res = [r.numpy().tolist() for r in res]
+        open(save_dir, 'w').write(json.dumps(res))
+
 
