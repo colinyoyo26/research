@@ -29,7 +29,7 @@ class Graph:
             cur_node = json_dict['nodes'][cur_id]
             
             # set tvm_op
-            if cur_node['op'] == 'tvm_op':
+            if cur_node['op'] == 'tvm_op' and cur_node['attrs']['func_name'] != '__nop':
                 self.num_tvm_op += 1
                 self.nodes[cur_id].is_tvm_op = True
                 key = 'attr'
@@ -48,6 +48,9 @@ class Graph:
                     self.nodes[cur_id].inputs.append(input_id)
                 self.nodes[input_id].outputs.append(cur_id)
         
+        for id in json_dict['arg_nodes']:
+            assert not self.nodes[id].is_tvm_op
+
         self.ready_list = set(json_dict['arg_nodes'])
         for cur_id in json_dict['arg_nodes']:
             self.consume(cur_id)
@@ -86,11 +89,13 @@ class Graph:
         self.nodes[id].emit_order = order
     
     def consume(self, id):
-        assert id in self.ready_list
+        assert id in self.ready_list or print(id)
         for output_id in self.nodes[id].outputs:
             self.nodes[output_id].ref_cnt -= 1
             if self.nodes[output_id].is_ready():
                 self.ready_list.add(output_id)
+                if not self.nodes[output_id].is_tvm_op:
+                    self.consume(output_id)
         self.ready_list.remove(id)
 
     def emit_node(self, id, sid, wait_list):
