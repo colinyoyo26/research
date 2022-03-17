@@ -1,6 +1,7 @@
 import copy
 import os
 import json
+from assigner import Assigner
 
 class Node:
     def __init__(self):
@@ -86,7 +87,7 @@ class Graph:
         self.nodes[id].stream_id = sid
 
     def set_wait_list(self, id, wait_list):
-        self.nodes[id].wait_list = [self.nodes[i].emit_order for i in wait_list]
+        self.nodes[id].wait_list = copy.deepcopy(wait_list)
 
     def set_emit_order(self, id, order):
         self.nodes[id].emit_order = order
@@ -111,29 +112,16 @@ class Graph:
         
 
     def save_assignment(self):
+        assigner = Assigner(self)
         res = {"assignment": [{}] * self.num_tvm_op}
         order = {'emit_order': [-1] * self.num_node}
-        i = 0
+
         for cur_id in range(self.num_node):
             cur_node = self.nodes[cur_id]
             if cur_node.is_tvm_op:
-                assert not len(cur_node.wait_list) or max(cur_node.wait_list) <  cur_node.emit_order
-                assert -1 not in cur_node.wait_list
-                res['assignment'][cur_node.emit_order] = {
-                    'func_name': cur_node.func_name, # func_name for verification
-                    'stream_id': cur_node.stream_id,
-                    'wait_list': cur_node.wait_list,
-                    'emit_order': cur_node.emit_order} 
-                order['emit_order'][cur_id] = cur_node.emit_order
-                
-        res_json = json.dumps(res, indent=2)
-        order_json = json.dumps(order, indent=2)
-
-        res_path = os.path.dirname(os.path.abspath(__file__)) + '/assignment.json'
-        order_path = os.path.dirname(os.path.abspath(__file__)) + '/emit_order.json'
-
-        open(res_path, 'w').write(res_json)
-        open(order_path, 'w').write(order_json)
+                assigner.set_node(cur_id, cur_node.stream_id, cur_node.wait_list)
+        
+        assigner.save_assignment()
 
     def is_empty(self):
         return len(self.ready_list) == 0

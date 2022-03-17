@@ -7,6 +7,7 @@ import sys
 import os
 import copy
 import json
+from assigner import Assigner
 
 ROOT_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..')
 sys.path.append(ROOT_PATH)
@@ -19,11 +20,10 @@ class Profiler:
         json, lib, _ = utils.tvm.util.load(tvm_cache)
         self.executor = graph_executor.create(json, lib, tvm.cuda(0))
         self.executor.run() # warm up
-        self.graph = graph
-        self.reset()
+        self.assigner = Assigner(graph)
 
     def get_profile_time(self):
-        self.save_assignment()
+        self.assigner.save_assignment()
         self.executor.reset()
 
         start_time = time.time()
@@ -31,25 +31,7 @@ class Profiler:
         return time.time() - start_time
 
     def reset(self):
-        self.res = {'assignment': []}
-        self.order = {'emit_order': [-1] * self.graph.num_node}
-        self.emit_cnt = 0
+        self.assigner.reset()
     
-    def emit_node(self, id, sid, wait_list):
-        self.res['assignment'].append({
-            'func_name': self.graph[id].func_name,
-            'stream_id': sid,
-            'wait_list': [self.order['emit_order'][i] for i in wait_list],
-            'emit_order': self.emit_cnt}) 
-        self.order['emit_order'][id] = self.emit_cnt
-        self.emit_cnt += 1
-    
-    def save_assignment(self):
-        res_json = json.dumps(self.res, indent=2)
-        order_json = json.dumps(self.order, indent=2)
-
-        res_path = os.path.dirname(os.path.abspath(__file__)) + '/assignment.json'
-        order_path = os.path.dirname(os.path.abspath(__file__)) + '/emit_order.json'
-
-        open(res_path, 'w').write(res_json)
-        open(order_path, 'w').write(order_json)
+    def set_node(self, id, sid, wait_list):
+        self.assigner.set_node(id, sid, wait_list)
