@@ -25,6 +25,7 @@ class Graph:
         self.num_node = len(json_dict['nodes'])
         self.num_tvm_op = 0
         self.emit_cnt = 0
+        self.consume_nodes = []
         self.nodes = [Node() for _ in range(self.num_node)]
         for cur_id in range(self.num_node):
             cur_node = json_dict['nodes'][cur_id]
@@ -101,6 +102,29 @@ class Graph:
                 if not self.nodes[output_id].is_tvm_op:
                     self.consume(output_id)
         self.ready_list.remove(id)
+        self.consume_nodes.append(id)
+
+    def undo(self):
+        id = self.consume_nodes.pop()
+        
+        if self.nodes[id].is_tvm_op:
+            assert self.nodes[id].is_emitted
+            self.emit_cnt -= 1
+            self.ready_list.add(id)
+            self.set_stream_id(id, -1)
+            self.set_wait_list(id, [])
+            self.set_emit_order(id, -1)
+            self.nodes[id].is_emitted = False
+        
+        for output_id in self.nodes[id].outputs:
+            self.nodes[output_id].ref_cnt += 1
+            if self.nodes[output_id] == 1:
+                assert output_id in ready_list or not self.nodes[output_id].is_tvm_op:
+                self.ready_list.remove(output_id)
+        
+        if not self.nodes[id].is_tvm_op:
+            assert self.emit_nodes[-1] in self.nodes[id].inputs
+            self.undo()
 
     def emit_node(self, id, sid, wait_list):
         self.set_stream_id(id, sid)
@@ -109,13 +133,9 @@ class Graph:
         self.emit_cnt += 1
         self.consume(id)
         self.nodes[id].is_emitted = True
-        
 
     def save_assignment(self):
         assigner = Assigner(self)
-        res = {"assignment": [{}] * self.num_tvm_op}
-        order = {'emit_order': [-1] * self.num_node}
-
         for cur_id in range(self.num_node):
             cur_node = self.nodes[cur_id]
             if cur_node.is_tvm_op:
