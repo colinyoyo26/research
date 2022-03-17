@@ -13,6 +13,8 @@ from utils import nvlog
 from graph import Graph
 from method1 import method1_assign, method1_stage_assign
 from method2 import method2_assign
+from method3 import method3_assign
+from method4 import method4_assign
 
 def default_assign(graph):
     while not graph.is_empty():
@@ -42,7 +44,9 @@ def get_assign_method(method):
                'wavefront_stage': wavefront_stage_assign,
                'method1': method1_assign,
                'method1_stage': method1_stage_assign,
-               'method2': method2_assign}
+               'method2': method2_assign,
+               'method3': method3_assign,
+               'method4': method4_assign}
     assign_method = methods.get(method)
     if not assign_method:
         assign_method = default_assign

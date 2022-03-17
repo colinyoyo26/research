@@ -135,12 +135,15 @@ class Graph:
         self.consume(id)
         self.nodes[id].is_emitted = True
 
-    def save_assignment(self):
+    def get_assigner(self):
         assigner = Assigner(self)
-
         for id in self.consume_nodes:
             if self[id].is_tvm_op:
                 assigner.set_node(id, self[id].stream_id, self[id].wait_list)
+        return assigner
+
+    def save_assignment(self):
+        assigner = self.get_assigner()
         assigner.save_assignment()
 
     def is_empty(self):
