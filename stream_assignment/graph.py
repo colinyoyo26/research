@@ -55,6 +55,9 @@ class Graph:
         for cur_id in json_dict['arg_nodes']:
             self.consume(cur_id)
 
+    def __getitem__(self, i):
+        return self.nodes[i]
+
     def ready_nodes(self):
         return list(self.ready_list)
 
@@ -109,7 +112,7 @@ class Graph:
 
     def save_assignment(self):
         res = {"assignment": [{}] * self.num_tvm_op}
-        order = {'emit_order': []}
+        order = {'emit_order': [-1] * self.num_node}
         i = 0
         for cur_id in range(self.num_node):
             cur_node = self.nodes[cur_id]
@@ -121,7 +124,7 @@ class Graph:
                     'stream_id': cur_node.stream_id,
                     'wait_list': cur_node.wait_list,
                     'emit_order': cur_node.emit_order} 
-                order['emit_order'].append(cur_node.emit_order)
+                order['emit_order'][cur_id] = cur_node.emit_order
                 
         res_json = json.dumps(res, indent=2)
         order_json = json.dumps(order, indent=2)
