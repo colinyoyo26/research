@@ -18,7 +18,9 @@ def insert_barriers(graph, wavefronts):
             for id in wave:
                 graph.set_wait_list(id, graph.get_inputs(id))
         min_time = min(min_time, time)
-        stream_ends = method1.update_stream_ends(stream_ends, wave)
+
+        for id in wave:
+            method1.update_stream_ends(graph, id, stream_ends)
 
 def method3_assign(graph):
     wavefronts = []

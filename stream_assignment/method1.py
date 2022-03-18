@@ -30,25 +30,28 @@ def fill_stage(graph, threshold):
     assert threshold - remain == prev_dp[threshold] or print(threshold - remain, prev_dp[threshold])
     return result
 
-def update_stream_ends(stream_ends, cur_wave):
-    if len(cur_wave) > len(stream_ends):
-        return copy.deepcopy(cur_wave)
-    for i, id in enumerate(cur_wave):
-        stream_ends[i] = id
-    return stream_ends
+def update_stream_ends(graph, id, stream_ends):
+    sid = graph[id].stream_id
+    assert sid <= len(stream_ends)
+    if sid == len(stream_ends):
+        stream_ends.append(id)
+    assert graph[id].emit_order >= graph[stream_ends[sid]].emit_order
+    stream_ends[sid] = id
 
 # profiled based / non stage
 def method1_assign(graph, threshold=100):
     while not graph.is_empty():
         node_ids = fill_stage(graph, threshold)    
-        for i, id in enumerate(node_ids):
-            graph.emit_node(id, i, graph.get_inputs(id))
+        for sid, id in enumerate(node_ids):
+            graph.emit_node(id, sid, graph.get_inputs(id))
         
 # profile based / stage 
 def method1_stage_assign(graph, threshold=400):
     stream_ends = []
     while not graph.is_empty():
-        node_ids = fill_stage(graph, threshold)  
-        for i, id in enumerate(node_ids):
-            graph.emit_node(id, i, stream_ends)
-        stream_ends = update_stream_ends(stream_ends, node_ids)
+        next_stream_ends = copy.deepcopy(stream_ends)
+        node_ids = fill_stage(graph, threshold) 
+        for sid, id in enumerate(node_ids):
+            graph.emit_node(id, sid, stream_ends)
+            update_stream_ends(graph, id, next_stream_ends)
+        stream_ends = next_stream_ends

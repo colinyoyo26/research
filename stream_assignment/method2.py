@@ -57,6 +57,7 @@ def fill_stage(graph, max_utilization, max_duration):
 def method2_assign(graph, max_utilization=200, max_duration=150):
     stream_ends = []
     while not graph.is_empty():
+        next_stream_ends = copy.deepcopy(stream_ends)
         node_ids = fill_stage(graph, max_utilization, max_duration)
         max_len = max([len(ids) for ids in node_ids])
         for i in range(max_len):
@@ -64,4 +65,5 @@ def method2_assign(graph, max_utilization=200, max_duration=150):
                 if i < len(ids):
                     w = stream_ends if i == 0 else []
                     graph.emit_node(ids[i], sid, w)
-        stream_ends = method1.update_stream_ends(stream_ends, [ids[-1] for ids in node_ids])
+                    method1.update_stream_ends(graph, ids[i], next_stream_ends)
+        stream_ends = next_stream_ends
