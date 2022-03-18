@@ -2,14 +2,15 @@ import sys
 import os
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 from profiler import Profiler
+import method1
 
 def insert_barriers(graph, wavefronts):
     profiler = Profiler()
     min_time = 100000
-    prev_wave = []
+    stream_ends = []
     for i, wave in enumerate(wavefronts):
         for id in wave:
-            graph.set_wait_list(id, prev_wave)
+            graph.set_wait_list(id, stream_ends)
         profiler.set_assigner(graph.get_assigner())
         time = profiler.get_profile_time()
 
@@ -17,7 +18,7 @@ def insert_barriers(graph, wavefronts):
             for id in wave:
                 graph.set_wait_list(id, graph.get_inputs(id))
         min_time = min(min_time, time)
-        prev_wave = wave
+        stream_ends = method1.update_stream_ends(stream_ends, wave)
 
 def method3_assign(graph):
     wavefronts = []

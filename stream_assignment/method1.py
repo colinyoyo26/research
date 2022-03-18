@@ -1,3 +1,5 @@
+import copy
+
 def fill_stage(graph, threshold):
     curLevel = graph.ready_nodes()
     utilizations = [int(graph.get_utilization(id)) for id in curLevel]
@@ -28,6 +30,13 @@ def fill_stage(graph, threshold):
     assert threshold - remain == prev_dp[threshold] or print(threshold - remain, prev_dp[threshold])
     return result
 
+def update_stream_ends(stream_ends, cur_wave):
+    if len(cur_wave) > len(stream_ends):
+        return copy.deepcopy(cur_wave)
+    for i, id in enumerate(cur_wave):
+        stream_ends[i] = id
+    return stream_ends
+
 # profiled based / non stage
 def method1_assign(graph, threshold=100):
     while not graph.is_empty():
@@ -35,12 +44,11 @@ def method1_assign(graph, threshold=100):
         for i, id in enumerate(node_ids):
             graph.emit_node(id, i, graph.get_inputs(id))
         
-
 # profile based / stage 
-def method1_stage_assign(graph, threshold=100):
-    wait_list = []
+def method1_stage_assign(graph, threshold=400):
+    stream_ends = []
     while not graph.is_empty():
-        node_ids = fill_stage(graph, threshold)    
+        node_ids = fill_stage(graph, threshold)  
         for i, id in enumerate(node_ids):
-            graph.emit_node(id, i, wait_list)
-        wait_list = node_ids
+            graph.emit_node(id, i, stream_ends)
+        stream_ends = update_stream_ends(stream_ends, node_ids)

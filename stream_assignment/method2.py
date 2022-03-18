@@ -54,14 +54,14 @@ def fill_stage(graph, max_utilization, max_duration):
     return [info[2] for info in stream_info]
 
 # profiled based / non stage
-def method2_assign(graph, max_utilization=150, max_duration=400):
-    wait_list = []
+def method2_assign(graph, max_utilization=200, max_duration=150):
+    stream_ends = []
     while not graph.is_empty():
         node_ids = fill_stage(graph, max_utilization, max_duration)
         max_len = max([len(ids) for ids in node_ids])
         for i in range(max_len):
             for sid, ids in enumerate(node_ids):
                 if i < len(ids):
-                    w = wait_list if i == 0 else []
+                    w = stream_ends if i == 0 else []
                     graph.emit_node(ids[i], sid, w)
-        wait_list = [ids[-1] for ids in node_ids]
+        stream_ends = method1.update_stream_ends(stream_ends, [ids[-1] for ids in node_ids])
