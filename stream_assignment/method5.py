@@ -1,8 +1,10 @@
+import method3
+
 def method5_assign(graph):
     node_finish_time = {}
     stream_finish_time = [0] * 6
 
-    def max_finish_time_after_assign_node_to_stream(id, sid):
+    def finish_time_after_assign_node_to_stream(id, sid):
         nonlocal graph, node_finish_time, stream_finish_time
         node_dur = graph.get_duration(id)
         new_finish_time = node_dur + stream_finish_time[sid]
@@ -17,7 +19,7 @@ def method5_assign(graph):
         sid_to_assign = 0
         finish_time = 100000
         for sid in range(num_stream):
-            t = max_finish_time_after_assign_node_to_stream(id, sid)
+            t = finish_time_after_assign_node_to_stream(id, sid)
             if t < finish_time:
                 sid_to_assign = sid
                 finish_time = t
