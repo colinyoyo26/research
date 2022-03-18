@@ -136,6 +136,7 @@ class Graph:
         self.nodes[id].is_emitted = True
 
     def get_assigner(self):
+        self.optimize_wait_lists()
         assigner = Assigner(self)
         for id in self.consume_nodes:
             if self[id].is_tvm_op:
@@ -145,6 +146,19 @@ class Graph:
     def save_assignment(self):
         assigner = self.get_assigner()
         assigner.save_assignment()
+
+    def optimize_wait_lists(self):
+        assert self.is_empty()
+        for id in self.consume_nodes:
+            if self[id].is_tvm_op:
+                last_emit_nodes = {}
+                wait_list = sorted(self[id].wait_list, key=lambda x : self[x].emit_order)
+                for wait_id in wait_list:
+                    sid = self[wait_id].stream_id
+                    last_emit_nodes[sid] = wait_id
+                self[id].wait_list = [last_emit_nodes[sid] for sid in last_emit_nodes]
+            
+                
 
     def is_empty(self):
         return len(self.ready_list) == 0
