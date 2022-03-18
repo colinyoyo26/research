@@ -15,6 +15,7 @@ from method1 import method1_assign, method1_stage_assign
 from method2 import method2_assign
 from method3 import method3_assign
 from method4 import method4_assign
+from method5 import method5_assign
 
 def default_assign(graph):
     while not graph.is_empty():
@@ -46,7 +47,8 @@ def get_assign_method(method):
                'method1_stage': method1_stage_assign,
                'method2': method2_assign,
                'method3': method3_assign,
-               'method4': method4_assign}
+               'method4': method4_assign,
+               'method5': method5_assign}
     assign_method = methods.get(method)
     if not assign_method:
         assign_method = default_assign
