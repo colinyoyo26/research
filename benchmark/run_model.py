@@ -107,13 +107,14 @@ if __name__ == '__main__':
     
     res = []
     cuda.rt.prof_start()
-    for i in range(0, n, batch_size):
-        res.append(run(executor, xs[i: i + batch_size]))
+    for _ in range(10):
+        for i in range(0, n, batch_size):
+            res.append(run(executor, xs[i: i + batch_size]))
     cuda.rt.prof_stop()
 
     elapsed = time.time() - start_time
     if print_time:
-        print('elapsed: ', elapsed)
+        print('elapsed: ', elapsed / 10)
     if save_res:
         res = [r.numpy().tolist() for r in res]
         open(save_dir, 'w').write(json.dumps(res))

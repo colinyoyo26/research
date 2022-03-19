@@ -24,10 +24,11 @@ class Profiler:
     def set_assigner(self, assigner):
         self.assigner = copy.deepcopy(assigner)
 
-    def get_profile_time(self):
+    def get_profile_time(self, warm_runs=10):
         self.assigner.save_assignment()
         self.executor.reset()
-        self.executor.run() # warm up
+        for _ in range(warm_runs):
+            self.executor.run() # warm up
 
         start_time = time.time()
         self.executor.run()
