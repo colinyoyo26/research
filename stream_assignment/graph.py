@@ -61,6 +61,14 @@ class Graph:
     def __getitem__(self, i):
         return self.nodes[i]
 
+    def assign(self, graph):
+        self.num_node = graph.num_node
+        self.num_tvm_op = graph.num_tvm_op
+        self.emit_cnt = graph.emit_cnt
+        self.consume_nodes = copy.deepcopy(graph.consume_nodes)
+        self.nodes = copy.deepcopy(graph.nodes)
+        self.ready_list = copy.deepcopy(graph.ready_list)
+
     def ready_nodes(self):
         return list(self.ready_list)
 
@@ -125,6 +133,10 @@ class Graph:
         
         if not self.nodes[id].is_tvm_op:
             assert self.emit_nodes[-1] in self.nodes[id].inputs
+            self.undo()
+
+    def reset(self):
+        while self.consume_nodes:
             self.undo()
 
     def emit_node(self, id, sid, wait_list):
