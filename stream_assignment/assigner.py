@@ -1,5 +1,6 @@
 import json
 import os
+import copy
 
 class Assigner:
     def __init__(self, graph):
@@ -29,6 +30,7 @@ class Assigner:
         self.emit_cnt -= 1
 
     def save_assignment(self):
+        self.optimize()
         res_json = json.dumps(self.res, indent=2)
         order_json = json.dumps(self.order, indent=2)
 
@@ -37,3 +39,13 @@ class Assigner:
 
         open(res_path, 'w').write(res_json)
         open(order_path, 'w').write(order_json)
+
+    def optimize(self):
+        for node_info in self.res['assignment']:
+            last_emit_nodes = {}
+            wait_list = sorted(node_info['wait_list'])
+            for wait_emit_order in wait_list:
+                sid = self.res['assignment'][wait_emit_order]['stream_id']
+                if sid != node_info['stream_id']:
+                    last_emit_nodes[sid] = wait_emit_order
+            node_info['wait_list'] = [last_emit_nodes[sid] for sid in last_emit_nodes]
