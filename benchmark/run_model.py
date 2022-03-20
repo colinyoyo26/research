@@ -55,7 +55,6 @@ def get_executor(model_name, compiler, tvm_assign_method, batch_size):
             executor.load_params(params)
         elif compiler == 'tvm_cuda_graph':
             executor = cuda_graph_executor.create(json, lib, dev)
-        
     assert executor or print(model_name)
 
     return executor
@@ -107,14 +106,16 @@ if __name__ == '__main__':
     
     res = []
     cuda.rt.prof_start()
-    for _ in range(10):
-        for i in range(0, n, batch_size):
-            res.append(run(executor, xs[i: i + batch_size]))
+    for i in range(0, n, batch_size):
+        res.append(run(executor, xs[i: i + batch_size]))
     cuda.rt.prof_stop()
 
     elapsed = time.time() - start_time
     if print_time:
-        print('elapsed: ', elapsed / 10)
+        if compiler == 'tvm':
+            print(executor.benchmark(tvm.cuda(0)))
+        else: 
+            print('elapsed: ', elapsed)
     if save_res:
         res = [r.numpy().tolist() for r in res]
         open(save_dir, 'w').write(json.dumps(res))

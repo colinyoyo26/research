@@ -9,7 +9,7 @@ from utils import nvlog
 model_names = ['NASNetMobile']
 batch_sizes = [1]
 compilers = ['tvm']
-tvm_assign_methods = ['wavefront','method1']
+tvm_assign_methods = ['default', 'method5', 'wavefront','method4', 'method3', 'method1', 'method2']
 nr_inputs = 1
 
 def doit(compiler, model_name, tvm_assign_method, batch_size):
