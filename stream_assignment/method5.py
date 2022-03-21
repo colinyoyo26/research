@@ -18,7 +18,7 @@ def method5_internal(graph, num_stream):
     while not graph.is_empty():
         nodes = graph.ready_nodes()
         id = min(nodes,
-            key=lambda x : node_earliest_start_time(x))
+            key=lambda x : (node_earliest_start_time(x), -graph.get_duration(x)))
         st = node_earliest_start_time(id)
         
         sid = min(enumerate(stream_finish_time), 
