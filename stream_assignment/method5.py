@@ -15,14 +15,19 @@ def method5_internal(graph, num_stream):
             return 0
         return max([graph[i].finish_time for i in inputs])
 
+    stream_ends = [-1] * num_stream
     while not graph.is_empty():
         nodes = graph.ready_nodes()
         id = min(nodes,
-            key=lambda x : (node_earliest_start_time(x), -graph.get_duration(x)))
+            key=lambda x : (node_earliest_start_time(x), -graph[x].duration))
         st = node_earliest_start_time(id)
         
         sid = min(enumerate(stream_finish_time), 
-            key=lambda x : (max(x[1], st), -x[1]))[0]
+                  key=lambda x : (max(x[1], st), 
+                                  stream_ends[x[0]] not in graph[id].inputs,
+                                  x[1]))[0]
+        stream_ends[sid] = id
+
         finish_time = max(st, stream_finish_time[sid]) \
             + graph.get_duration(id)
         graph[id].finish_time = stream_finish_time[sid] = finish_time 
