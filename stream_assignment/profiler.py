@@ -26,7 +26,7 @@ class Profiler:
 
     def get_profile_time(self, warm_runs=10):
         self.assigner.save_assignment()
-        self.executor.reset()
+        self.executor.set_schedule('../stream_assignment/emit_order.json', '../stream_assignment/assignment.json')
         for _ in range(warm_runs):
             self.executor.run() # warm up
 

@@ -53,10 +53,10 @@ def get_executor(model_name, compiler, tvm_assign_method, batch_size):
         if compiler == 'tvm':
             executor = graph_executor.create(json, lib, dev)
             executor.load_params(params)
+            executor.set_schedule('../stream_assignment/emit_order.json', '../stream_assignment/assignment.json')
         elif compiler == 'tvm_cuda_graph':
             executor = cuda_graph_executor.create(json, lib, dev)
     assert executor or print(model_name)
-
     return executor
 
 if __name__ == '__main__':
