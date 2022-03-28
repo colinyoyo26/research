@@ -54,7 +54,7 @@ def fill_stage(graph, max_utilization, max_duration):
     return [info[2] for info in stream_info]
 
 # profiled based / non stage
-def method2_assign(graph, max_utilization=200, max_duration=150):
+def method2_assign(graph, max_utilization=200, max_duration=150, **kwargs):
     stream_ends = []
     while not graph.is_empty():
         next_stream_ends = copy.deepcopy(stream_ends)

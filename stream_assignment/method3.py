@@ -22,7 +22,7 @@ def insert_barriers(graph, wavefronts):
         for id in wave:
             method1.update_stream_ends(graph, id, stream_ends)
 
-def method3_assign(graph):
+def method3_assign(graph, **kwargs):
     wavefronts = []
 
     while not graph.is_empty():

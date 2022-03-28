@@ -39,14 +39,14 @@ def update_stream_ends(graph, id, stream_ends):
     stream_ends[sid] = id
 
 # profiled based / non stage
-def method1_assign(graph, threshold=100):
+def method1_assign(graph, threshold=100, **kwargs):
     while not graph.is_empty():
         node_ids = fill_stage(graph, threshold)    
         for sid, id in enumerate(node_ids):
             graph.emit_node(id, sid, graph.get_inputs(id))
         
 # profile based / stage 
-def method1_stage_assign(graph, threshold=400):
+def method1_stage_assign(graph, threshold=400, **kwargs):
     stream_ends = []
     while not graph.is_empty():
         next_stream_ends = copy.deepcopy(stream_ends)

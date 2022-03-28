@@ -46,7 +46,8 @@ def get_executor(model_name, compiler, tvm_assign_method, batch_size):
         # generate assign.json file 
         os.system(f'python ../stream_assignment/stream_assignment.py --json_path {tvm_cache}.json '
                                                                     f'--extracted_file {extracted_path} ' 
-                                                                    f'--method {tvm_assign_method}')
+                                                                    f'--method {tvm_assign_method} '
+                                                                    f'--model_name {model_name}')
         json, lib, params = utils.tvm.util.load(tvm_cache)
         dev = tvm.cuda(0)
         

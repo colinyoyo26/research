@@ -4,7 +4,7 @@ sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 import method1
 import method3
 
-def method4_assign(graph, threshold=70):
+def method4_assign(graph, threshold=70, **kwargs):
     wavefronts = []
 
     while not graph.is_empty():

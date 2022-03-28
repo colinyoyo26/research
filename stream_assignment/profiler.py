@@ -14,7 +14,7 @@ sys.path.append(ROOT_PATH)
 import utils
 
 class Profiler:
-    def __init__(self, assigner=None, model_name='NASNetMobile', batch_size=1):
+    def __init__(self, model_name, assigner=None, batch_size=1):
         file_dir = os.path.dirname(os.path.abspath(__file__))
         tvm_cache = os.path.join(file_dir, '..', 'benchmark', 'tvm_cache', f'{model_name}_{batch_size}')
         json, lib, _ = utils.tvm.util.load(tvm_cache)

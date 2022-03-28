@@ -18,27 +18,27 @@ from method4 import method4_assign
 from method5 import method5_assign
 from method6 import method6_assign
 
-def default_assign(graph):
+def default_assign(graph, **kwargs):
     while not graph.is_empty():
         for id in graph.ready_nodes():
             graph.emit_node(id, 0, [])
 
 # wavefront
-def wavefront_assign(graph):
+def wavefront_assign(graph, **kwargs):
     method1_assign(graph, 10000)
 
 # wavefront / stage
-def wavefront_stage_assign(graph):
+def wavefront_stage_assign(graph, **kwargs):
     method1_stage_assign(graph, 10000)
 
-def assign_stream(json_dict, assign_func, extracted_file):
+def assign_stream(json_dict, model_name, assign_func, extracted_file):
     if assign_func == default_assign:
         kernel_info = defaultdict(lambda : [0, 0])
     else:
         kernel_info = nvlog.info.get_kernel_info(extracted_file)
     graph = Graph(json_dict, kernel_info)
 
-    assign_func(graph)
+    assign_func(graph, model_name=model_name)
     graph.save_assignment()
 
 def get_assign_method(method):
@@ -61,18 +61,20 @@ if __name__ == '__main__':
     parser.add_argument('--json_path', type=str, help='tvm json file path')
     parser.add_argument('--extracted_file', type=str, default='', help='tvm json file path')
     parser.add_argument('--method', type=str, default='default')
+    parser.add_argument('--model_name', type=str, default='')
     args = vars(parser.parse_args())
 
     json_path = args['json_path']
     extracted_file = args['extracted_file']
     method = args['method']
+    model_name = args['model_name']
     assign_method = get_assign_method(method)
 
     file_name = json_path.split('/')[-1].split('.')[0] + '_assignment.json'
 
     f = open(json_path)
     json_dict = json.load(f)
-    assign_stream(json_dict, assign_method, extracted_file)
+    assign_stream(json_dict, model_name, assign_method, extracted_file)
 
     # make storage to be correct in a brute force way
     for i in range(len(json_dict['attrs']['storage_id'][1])):

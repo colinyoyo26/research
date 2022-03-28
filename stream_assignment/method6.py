@@ -74,6 +74,6 @@ def profile_best(graph, partition):
         stream_finish_time = best_stream_finish_time
         graph.assign(best_graph)
 
-def method6_assign(graph):
+def method6_assign(graph, kwargs):
     partition = get_partition(graph)
     profile_best(graph, partition)
