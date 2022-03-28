@@ -24,9 +24,8 @@ def run_tvm(executor, x):
 def run_tf(executor, x):
     return executor(x)
 
-def get_executor(model_name, compiler, tvm_assign_method, batch_size):
-    model = utils.tf.model.select_model(model_name)
-    input_shape = (batch_size, 224, 224, 3)
+def get_executor(model, input_shape, compiler, tvm_assign_method, batch_size):
+    input_shape = (batch_size, input_shape[0], input_shape[1], input_shape[2])
     tf_func = tf.function(lambda x : model.call(x, training=False),
         input_signature=[tf.TensorSpec(input_shape, tf.float32)],
         jit_compile=False)
@@ -93,10 +92,11 @@ if __name__ == '__main__':
     except:
         exit(1)
 
-    executor = get_executor(model_name, compiler, tvm_assign_method, batch_size)
+    model, input_shape = utils.tf.model.select_model(model_name)
+    executor = get_executor(model, input_shape, compiler, tvm_assign_method, batch_size)
     run = run_tf if compiler == 'if' else run_tvm
 
-    xs = np.random.rand(max(n, warm_size), 224, 224, 3)
+    xs = np.random.rand(max(n, warm_size), input_shape[0], input_shape[1], input_shape[2])
     xs = np.ones_like(xs)
 
     if warmup:
