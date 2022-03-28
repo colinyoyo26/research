@@ -1,3 +1,5 @@
+decorator==5.1.1
+attrs==21.4.0
 numpy==1.19.2
 tf-nightly
 pillow==8.3.2
