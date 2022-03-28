@@ -2,3 +2,4 @@ numpy==1.19.2
 tf-nightly
 pillow==8.3.2
 scipy==1.7.2
+git+https://github.com/qubvel/classification_models.git
