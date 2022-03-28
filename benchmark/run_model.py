@@ -41,10 +41,10 @@ def get_executor(model, input_shape, compiler, tvm_assign_method, batch_size):
             os.system('mkdir -p tvm_cache')
             utils.tvm.util.save(json, lib, params, tvm_cache)
 
-        extracted_path = f'./logs/{compiler}_{model_name}_default_{batch_size}.extracted.log'
+        extracted_path = f'./logs/{compiler}_{model_name}_default_{batch_size}.log'
         # generate assign.json file 
         os.system(f'python ../stream_assignment/stream_assignment.py --json_path {tvm_cache}.json '
-                                                                    f'--extracted_file {extracted_path} ' 
+                                                                    f'--log_file {extracted_path} ' 
                                                                     f'--method {tvm_assign_method} '
                                                                     f'--model_name {model_name}')
         json, lib, params = utils.tvm.util.load(tvm_cache)

@@ -7,7 +7,7 @@ import tvm.relay as relay
 def build_from_tfv2(tf_func):
     frozen = convert_variables_to_constants_v2(tf_func.get_concrete_function())
     mod, params = relay.frontend.from_tensorflow(frozen.graph.as_graph_def())
-    target = tvm.target.cuda()
+    target = 'cuda -arch=sm_86'
     with tvm.transform.PassContext(opt_level=3):
         json, lib, params = relay.build(mod, target, params=params)
     return json, lib, params

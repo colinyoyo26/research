@@ -40,8 +40,7 @@ class Graph:
                     key = 'attrs'
                 func_name = cur_node[key]['func_name']
                 self.nodes[cur_id].func_name = func_name
-                self.nodes[cur_id].utilization = kernel_info[func_name][0]
-                self.nodes[cur_id].duration = kernel_info[func_name][1]
+                self.nodes[cur_id].duration = kernel_info[func_name]['duration']
             
             # build DAG
             inputs = cur_node['inputs']

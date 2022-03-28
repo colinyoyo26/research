@@ -1,31 +1,16 @@
 from collections import defaultdict
+import pandas as pd
 
-def get_kernel_info(extracted_file: str):
-    lines = open(extracted_file).readlines()
-    kernel_info = defaultdict(lambda : [[], []])
+def get_kernel_info(log_file: str):
+    table = pd.read_table(log_file, skiprows=[0, 1, 2, 3, 4, 5, 6, 7], delim_whitespace=True, 
+        usecols=[0, 1, 18, 19], names=['start_time', 'duration', 'stream_id', 'kernel_name'])
+    kernel_info = defaultdict(lambda : {'duration' : 0})
     visited = set()
-
-    for line in lines:
-        kernel_name, _, _, duration, sm_efficiency, achieved_occupacy = line.split('$')
-        kernel_name = kernel_name[1: -1]
+    for i in range(len(table)):
+        kernel_name, duration = table.kernel_name[i], table.duration[i]
         if kernel_name in visited:
             continue
         visited.add(kernel_name)
-        
-        duration = float(duration)
-        utilization = float(sm_efficiency) * float(achieved_occupacy)
-        
-        assert 0 < utilization <= 100 or print(kernel_name, utilizations, durations)
-
         kernel_name = kernel_name[: len(kernel_name) - 8]
-        kernel_info[kernel_name][0].append(utilization)
-        kernel_info[kernel_name][1].append(duration)
-
-    for kernel_name in kernel_info:
-        utilizations, durations = kernel_info[kernel_name]
-        duration = sum(durations)
-        utilization = sum([u * d for u, d in zip(utilizations, durations)]) / duration
-        assert 0 < utilization <= 100 or print(kernel_name, utilizations, durations)
-        kernel_info[kernel_name] = (utilization, duration)
-
+        kernel_info[kernel_name]['duration'] += float(duration)
     return kernel_info

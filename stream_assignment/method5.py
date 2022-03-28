@@ -37,7 +37,7 @@ def method5_assign(graph, **kwargs):
     profiler = Profiler(model_name=kwargs['model_name'])
     best_time = 100000
 
-    for num_stream in range(1, 11, 1):
+    for num_stream in range(1, 32, 1):
         graph_copy = copy.deepcopy(graph)
         method5_internal(graph_copy, num_stream)
         assert graph_copy.is_empty()
