@@ -1,15 +1,16 @@
-import tensorflow as tf
-from tensorflow.python.framework.convert_to_constants import convert_variables_to_constants_v2
-import tvm
-from tvm.contrib import graph_executor
-from tvm.contrib.cuda_graph import cuda_graph_executor
-
 import numpy as np
 import argparse
 import time
 import sys
 import os
 import json
+
+os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
+import tensorflow as tf
+from tensorflow.python.framework.convert_to_constants import convert_variables_to_constants_v2
+import tvm
+from tvm.contrib import graph_executor
+from tvm.contrib.cuda_graph import cuda_graph_executor
 
 ROOT_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..')
 sys.path.append(ROOT_PATH)
@@ -85,7 +86,6 @@ if __name__ == '__main__':
     n = (n + batch_size - 1) // batch_size * batch_size
     warm_size = (100 + batch_size - 1) // batch_size * batch_size
 
-    os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
     physical_devices = tf.config.list_physical_devices('GPU')
     try:
         tf.config.experimental.set_memory_growth(physical_devices[0], True)
@@ -114,7 +114,10 @@ if __name__ == '__main__':
     elapsed = time.time() - start_time
     if print_time:
         if compiler == 'tvm':
-            print(executor.benchmark(tvm.cuda(0)))
+            repeat = 100
+            bench_res = executor.benchmark(tvm.cuda(0), repeat=repeat, end_to_end=True)
+            res_time = (bench_res.mean * repeat - bench_res.max - bench_res.min) / (repeat - 2)
+            print(res_time)
         else: 
             print('elapsed: ', elapsed)
     if save_res:

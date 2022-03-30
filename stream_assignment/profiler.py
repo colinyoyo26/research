@@ -29,10 +29,10 @@ class Profiler:
         self.executor.set_schedule('../stream_assignment/emit_order.json', '../stream_assignment/assignment.json')
         for _ in range(warm_runs):
             self.executor.run() # warm up
-
-        start_time = time.time()
-        self.executor.run()
-        return time.time() - start_time
+        repeat = 100
+        bench_res = self.executor.benchmark(tvm.cuda(0), repeat=repeat, end_to_end=True)
+        res_time = (bench_res.mean * repeat - bench_res.max - bench_res.min) / (repeat - 2)
+        return res_time
 
     def reset(self):
         self.assigner.reset()
