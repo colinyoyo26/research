@@ -9,13 +9,20 @@ from utils import nvlog
 model_names = ['NASNetMobile']
 batch_sizes = [1]
 compilers = ['tvm']
-tvm_assign_methods = ['default', 'method5', 'wavefront',]
+tvm_assign_methods = ['default', 'wavefront', 'method5']
 nr_inputs = 1
 
 def doit(compiler, model_name, tvm_assign_method, batch_size):
     python = sys.executable
 
-    nvprof_command = ['nsys', 'nvprof', '--print-gpu-trace', '--profile-from-start', 'off']
+    log_file = f'logs/{compiler}_{model_name}_{tvm_assign_method}_{batch_size}'
+
+    profile_command = ['nsys', 'profile', '-c', 'cudaProfilerApi', '--export', 'sqlite', '-f', 'true', '-o', 'report']
+    stats_command = ['nsys', 'stats', 'report.sqlite', '-f', 'csv,table', '--report', 'gpukernsum,cudaapisum', '-o', log_file]
+    
+    ncu_command = ['ncu', '--replay-mode', 'range', '--set', 'full', '-f', '-o', 'ncu_tmp']
+    ncu_stats_command = ['ncu', '--import', 'ncu_tmp.ncu-rep', '-f', '--log-file', log_file + '.log']
+
     run_model_command = [python, 'run_model.py', '--n', str(nr_inputs),
         '--warmup', 'true', '--tvm_assign_method', tvm_assign_method, 
         '--compiler', compiler,'--model_name', model_name, '--batch_size', str(batch_size)]
@@ -25,13 +32,13 @@ def doit(compiler, model_name, tvm_assign_method, batch_size):
     command = run_model_command + ['--print_time', 'true']
     subprocess.run(command)
 
-    log_file = f'logs/{compiler}_{model_name}_{tvm_assign_method}_{batch_size}.log'
-    command = nvprof_command + run_model_command
-    ps = subprocess.run(command, capture_output=True)
-    open(log_file, 'wb').write(ps.stdout)
+    command = profile_command + run_model_command
+    subprocess.run(command, capture_output=True)
+    subprocess.run(stats_command, capture_output=True)
 
-    #print(f'active ratio: {active_ratio}')
-    #print(f'kernel time: {kernel_time / 1e6}')
+    command = ncu_command + run_model_command
+    subprocess.run(command, capture_output=True)
+    subprocess.run(ncu_stats_command)    
     
 if __name__ == '__main__':
     os.chdir(os.path.dirname(os.path.abspath(__file__)))

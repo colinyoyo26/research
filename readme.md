@@ -15,6 +15,9 @@ Then you need to build the tvm and set the environment variable
 ```
 $ export TVM_HOME=third_party/tvm
 ```
+```
+nvidia-cuda-toolkit >= 11.6 
+```
 
 ## benchmak
 `nvprof` requires the root permission, but `sudo` change the interpreter to use
