@@ -23,7 +23,7 @@ def select_model(model_name: str):
               'ResNeXt101': (Classifiers.get('resnext101')[0], (224, 224, 3))}
 
     if 'Ensemble[' in model_name:
-      names = model_name.lstrip('Ensemble[').rstrip(']').split(',')
+      names = model_name.lstrip('Ensemble[').rstrip(']').split('|')
       input_shape = None
       model_list = []
       prev_name = None
