@@ -42,12 +42,12 @@ def get_executor(model, input_shape, compiler, tvm_assign_method, batch_size):
             os.system('mkdir -p tvm_cache')
             utils.tvm.util.save(json, lib, params, tvm_cache)
 
-        log_path = f'./logs/{compiler}_{model_name}_default_{batch_size}_gpukernsum.csv'
+        log_path = os.path.abspath(f'./logs/{compiler}_{model_name}_default_{batch_size}_gpukernsum.csv')
         # generate assign.json file 
         os.system(f'python ../stream_assignment/stream_assignment.py --json_path {tvm_cache}.json '
                                                                     f'--log_file {log_path} ' 
                                                                     f'--method {tvm_assign_method} '
-                                                                    f'--model_name {model_name}')
+                                                                    f'--model_path {tvm_cache}')
         json, lib, params = utils.tvm.util.load(tvm_cache)
         dev = tvm.cuda(0)
         

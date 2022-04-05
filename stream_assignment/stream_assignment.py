@@ -31,13 +31,13 @@ def wavefront_assign(graph, **kwargs):
 def wavefront_stage_assign(graph, **kwargs):
     method1_stage_assign(graph, 10000)
 
-def assign_stream(json_dict, model_name, assign_func, log_file):
+def assign_stream(json_dict, model_path, assign_func, log_file):
     kernel_info = defaultdict(lambda : {'duration' : 0})
     if assign_func != default_assign:
         kernel_info = nvlog.info.get_kernel_info(log_file)
     graph = Graph(json_dict, kernel_info)
 
-    assign_func(graph, model_name=model_name)
+    assign_func(graph, model_path=model_path)
     graph.save_assignment()
 
 def get_assign_method(method):
@@ -60,20 +60,20 @@ if __name__ == '__main__':
     parser.add_argument('--json_path', type=str, help='tvm json file path')
     parser.add_argument('--log_file', type=str, default='')
     parser.add_argument('--method', type=str, default='default')
-    parser.add_argument('--model_name', type=str, default='')
+    parser.add_argument('--model_path', type=str, default='')
     args = vars(parser.parse_args())
 
     json_path = args['json_path']
     log_file = args['log_file']
     method = args['method']
-    model_name = args['model_name']
+    model_path = args['model_path']
     assign_method = get_assign_method(method)
 
     file_name = json_path.split('/')[-1].split('.')[0] + '_assignment.json'
 
     f = open(json_path)
     json_dict = json.load(f)
-    assign_stream(json_dict, model_name, assign_method, log_file)
+    assign_stream(json_dict, model_path, assign_method, log_file)
 
     # make storage to be correct in a brute force way
     for i in range(len(json_dict['attrs']['storage_id'][1])):

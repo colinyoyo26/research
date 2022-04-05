@@ -32,12 +32,13 @@ def method5_internal(graph, num_stream):
             + graph.get_duration(id)
         graph[id].finish_time = stream_finish_time[sid] = finish_time 
         graph.emit_node(id, sid, graph.get_inputs(id))
+    graph[graph.consume_nodes[-1]].stream_id = 0
 
 def method5_assign(graph, **kwargs):
-    profiler = Profiler(model_name=kwargs['model_name'])
+    profiler = Profiler(model_path=kwargs['model_path'])
     best_time = 100000
 
-    for num_stream in range(1, 32, 1):
+    for num_stream in range(1, 33, 1):
         graph_copy = copy.deepcopy(graph)
         method5_internal(graph_copy, num_stream)
         assert graph_copy.is_empty()
@@ -46,4 +47,6 @@ def method5_assign(graph, **kwargs):
         if time < best_time:
             best_graph = graph_copy
             best_time = time
+            best = num_stream
+    print('best: ', best)
     graph.assign(best_graph)    

@@ -14,10 +14,9 @@ sys.path.append(ROOT_PATH)
 import utils
 
 class Profiler:
-    def __init__(self, model_name, assigner=None, batch_size=1):
+    def __init__(self, model_path, assigner=None):
         file_dir = os.path.dirname(os.path.abspath(__file__))
-        tvm_cache = os.path.join(file_dir, '..', 'benchmark', 'tvm_cache', f'{model_name}_{batch_size}')
-        json, lib, _ = utils.tvm.util.load(tvm_cache)
+        json, lib, _ = utils.tvm.util.load(model_path)
         self.executor = graph_executor.create(json, lib, tvm.cuda(0))
         self.set_assigner(assigner)
 
@@ -29,7 +28,7 @@ class Profiler:
         self.executor.set_schedule('../stream_assignment/emit_order.json', '../stream_assignment/assignment.json')
         for _ in range(warm_runs):
             self.executor.run() # warm up
-        repeat = 100
+        repeat = 20
         bench_res = self.executor.benchmark(tvm.cuda(0), repeat=repeat, end_to_end=True)
         res_time = (bench_res.mean * repeat - bench_res.max - bench_res.min) / (repeat - 2)
         return res_time
