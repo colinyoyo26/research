@@ -6,8 +6,9 @@ ROOT_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..')
 sys.path.append(ROOT_PATH)
 from utils import nvlog
 
-model_names = ['Ensemble[NASNetMobile_NASNetMobile]', 'Ensemble[NASNetMobile_ResNeXt50]', 'Ensemble[NASNetMobile_ResNet50]']
-batch_sizes = [1, 8]
+model_names = ['ResNeXt50', 'Ensemble[NASNetMobile_ResNeXt50]', 'Ensemble[NASNetMobile_ResNet50]']
+#model_names = ['NASNetMobile']
+batch_sizes = [8]
 compilers = ['tvm']
 tvm_assign_methods = ['default', 'wavefront', 'method5']
 nr_inputs = 1
@@ -18,7 +19,8 @@ def doit(compiler, model_name, tvm_assign_method, batch_size):
     log_file = f'logs/{compiler}_{model_name}_{tvm_assign_method}_{batch_size}'
 
     profile_command = ['nsys', 'profile', '-c', 'cudaProfilerApi', '--export', 'sqlite', '-f', 'true', '-o', 'report']
-    stats_command = ['nsys', 'stats', 'report.sqlite', '-f', 'csv,table', '--report', 'gpukernsum,cudaapisum', '-o', log_file]
+    stats_command = ['nsys', 'stats', 'report.sqlite', '-f', 'csv,table', '--report', 'gpukernsum,cudaapisum', 
+                            '--force-overwrite', 'true', '-o', log_file]
     
     ncu_command = ['ncu', '--replay-mode', 'range', '--set', 'full', '-f', '-o', 'ncu_tmp']
     ncu_stats_command = ['ncu', '--import', 'ncu_tmp.ncu-rep', '-f', '--log-file', log_file + '.log']
