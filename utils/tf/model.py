@@ -1,5 +1,5 @@
 import tensorflow as tf
-from tensorflow.keras.applications import NASNetMobile, NASNet, EfficientNetB0, MobileNetV3Small, ResNet50
+from tensorflow.keras.applications import NASNetMobile, EfficientNetB0, MobileNetV3Small, ResNet50
 from classification_models.tfkeras import Classifiers
 
 def getEnsemble(model_list, input_shape):
