@@ -7,29 +7,39 @@ from profiler import Profiler
 
 def method5_internal(graph, num_stream):
     stream_finish_time = [0] * num_stream
-
-    def node_earliest_start_time(id):
+    
+    def get_latest_inputs(id):
         nonlocal graph
         inputs = graph.get_inputs(id)
         if not inputs:
+            return []
+        mx_ft = max([graph[i].finish_time for i in inputs])
+        return [i for i in inputs if graph[i].finish_time == mx_ft]
+    
+    def get_start_time(id):
+        nonlocal graph
+        latest_inputs = get_latest_inputs(id)
+        if not latest_inputs:
             return 0
-        return max([graph[i].finish_time for i in inputs])
+        return graph[latest_inputs[0]].finish_time
 
-    stream_ends = [-1] * num_stream
     while not graph.is_empty():
         nodes = graph.ready_nodes()
         id = min(nodes,
-            key=lambda x : (node_earliest_start_time(x), -graph[x].duration))
-        st = node_earliest_start_time(id)
-        
+            key=lambda x : (get_start_time(x), -graph[x].duration))
+        latest_inputs = get_latest_inputs(id)
+        candidates = [graph[i].stream_id for i in latest_inputs]
+
+        st = get_start_time(id)
+
         sid = min(enumerate(stream_finish_time), 
-                  key=lambda x : (max(x[1], st), 
-                                  stream_ends[x[0]] not in graph[id].inputs,
+                  key=lambda x : (max(x[1], st),
+                                  x[0] not in candidates,
                                   x[1]))[0]
-        stream_ends[sid] = id
 
         finish_time = max(st, stream_finish_time[sid]) \
             + graph.get_duration(id)
+
         graph[id].finish_time = stream_finish_time[sid] = finish_time 
         graph.emit_node(id, sid, graph.get_inputs(id))
     graph[graph.consume_nodes[-1]].stream_id = 0
@@ -38,9 +48,9 @@ def method5_assign(graph, **kwargs):
     profiler = Profiler(model_path=kwargs['model_path'])
     best_time = 100000
 
-    for num_stream in range(1, 33, 1):
+    for num_stream in range(1,33, 1):
         graph_copy = copy.deepcopy(graph)
-        method5_internal(graph_copy, num_stream)
+        approx = method5_internal(graph_copy, num_stream)
         assert graph_copy.is_empty()
         profiler.set_assigner(graph_copy.get_assigner())
         time = profiler.get_profile_time()
@@ -48,5 +58,4 @@ def method5_assign(graph, **kwargs):
             best_graph = graph_copy
             best_time = time
             best = num_stream
-    print('best: ', best)
     graph.assign(best_graph)    
