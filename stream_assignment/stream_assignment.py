@@ -4,32 +4,14 @@ import json
 import argparse
 import copy
 from collections import defaultdict
-import heapq
 
 ROOT_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..')
 sys.path.append(ROOT_PATH)
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 from utils import nvlog
 from graph import Graph
-from method1 import method1_assign, method1_stage_assign
-from method2 import method2_assign
-from method3 import method3_assign
-from method4 import method4_assign
-from method5 import method5_assign
-from method6 import method6_assign
-
-def default_assign(graph, **kwargs):
-    while not graph.is_empty():
-        for id in graph.ready_nodes():
-            graph.emit_node(id, 0, [])
-
-# wavefront
-def wavefront_assign(graph, **kwargs):
-    method1_assign(graph, 10000)
-
-# wavefront / stage
-def wavefront_stage_assign(graph, **kwargs):
-    method1_stage_assign(graph, 10000)
+from baseline import default_assign, bfs_assign
+from method import method_assign
 
 def assign_stream(json_dict, model_path, assign_func, log_file):
     kernel_info = defaultdict(lambda : {'duration' : 0})
@@ -41,15 +23,8 @@ def assign_stream(json_dict, model_path, assign_func, log_file):
     graph.save_assignment()
 
 def get_assign_method(method):
-    methods = {'wavefront': wavefront_assign,
-               'wavefront_stage': wavefront_stage_assign,
-               'method1': method1_assign,
-               'method1_stage': method1_stage_assign,
-               'method2': method2_assign,
-               'method3': method3_assign,
-               'method4': method4_assign,
-               'method5': method5_assign,
-               'method6': method6_assign}
+    methods = {'bfs': bfs_assign,
+               'method': method_assign}
     assign_method = methods.get(method)
     if not assign_method:
         assign_method = default_assign

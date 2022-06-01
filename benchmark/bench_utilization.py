@@ -6,11 +6,11 @@ ROOT_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..')
 sys.path.append(ROOT_PATH)
 from utils import nvlog
 
-model_names = ['ResNeXt50', 'Ensemble[NASNetMobile_ResNeXt50]', 'Ensemble[NASNetMobile_ResNet50]']
-#model_names = ['NASNetMobile']
-batch_sizes = [8]
+#model_names = ['ResNeXt50', 'Ensemble[NASNetMobile_ResNeXt50]', 'Ensemble[NASNetMobile_ResNet50]']
+model_names = ['NASNetMobile']
+batch_sizes = [1]
 compilers = ['tvm']
-tvm_assign_methods = ['default', 'wavefront', 'method5']
+tvm_assign_methods = ['default', 'bfs', 'method']
 nr_inputs = 1
 
 def doit(compiler, model_name, tvm_assign_method, batch_size):

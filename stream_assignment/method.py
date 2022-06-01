@@ -5,7 +5,7 @@ import copy
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 from profiler import Profiler
 
-def method5_internal(graph, num_stream):
+def method_internal(graph, num_stream):
     stream_finish_time = [0] * num_stream
     
     def get_latest_inputs(id):
@@ -44,13 +44,13 @@ def method5_internal(graph, num_stream):
         graph.emit_node(id, sid, graph.get_inputs(id))
     graph[graph.consume_nodes[-1]].stream_id = 0
 
-def method5_assign(graph, **kwargs):
+def method_assign(graph, **kwargs):
     profiler = Profiler(model_path=kwargs['model_path'])
     best_time = 100000
 
     for num_stream in range(1,33, 1):
         graph_copy = copy.deepcopy(graph)
-        approx = method5_internal(graph_copy, num_stream)
+        approx = method_internal(graph_copy, num_stream)
         assert graph_copy.is_empty()
         profiler.set_assigner(graph_copy.get_assigner())
         time = profiler.get_profile_time()
