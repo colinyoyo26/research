@@ -7,10 +7,12 @@ sys.path.append(ROOT_PATH)
 from utils import nvlog
 
 #model_names = ['ResNeXt50', 'Ensemble[NASNetMobile_ResNeXt50]', 'Ensemble[NASNetMobile_ResNet50]']
-model_names = ['NASNetMobile']
-batch_sizes = [1]
+model_names = ['Ensemble[NASNetMobile_NASNetMobile]', 'ResNeXt50', 'Ensemble[NASNetMobile_NASNetMobile]', 'Ensemble[NASNetMobile_ResNeXt50]', 
+               'Ensemble[NASNetMobile_ResNet50]', 'Ensemble[ResNeXt50_ResNeXt50]', 'Ensemble[ResNeXt50_ResNet50]',
+               'Ensemble[ResNet50_ResNet50]', 'Ensemble[NASNetMobile_ResNeXt50_ResNet50]']
+batch_sizes = [1, 8]
 compilers = ['tvm']
-tvm_assign_methods = ['default', 'bfs', 'method']
+tvm_assign_methods = ['method2']
 nr_inputs = 1
 
 def doit(compiler, model_name, tvm_assign_method, batch_size):
@@ -37,6 +39,11 @@ def doit(compiler, model_name, tvm_assign_method, batch_size):
     command = profile_command + run_model_command
     subprocess.run(command, capture_output=True)
     subprocess.run(stats_command, capture_output=True)
+
+    if tvm_assign_method == 'default':
+        command = ['ncu', '--profile-from-start', 'off', '--set', 'default', '-f', '-o', 'ncu_tmp'] + run_model_command
+        subprocess.run(command, capture_output=True)
+        subprocess.run(['ncu', '--import', 'ncu_tmp.ncu-rep', '-f', '--csv', '--log-file', log_file + '_launch.log']) 
 
     command = ncu_command + run_model_command
     subprocess.run(command, capture_output=True)

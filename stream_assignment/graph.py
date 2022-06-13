@@ -9,8 +9,9 @@ class Node:
         self.outputs = []
         self.inputs = []
         self.func_name = ''
-        self.utilization = -1
         self.duration = -1
+        self.grid_size = -1
+        self.threads = -1
         self.is_tvm_op = False
         self.stream_id = -1
         self.wait_list = []
@@ -40,8 +41,15 @@ class Graph:
                     key = 'attrs'
                 func_name = cur_node[key]['func_name']
                 self.nodes[cur_id].func_name = func_name
-                self.nodes[cur_id].duration = kernel_info[func_name]['duration']
-            
+                self.nodes[cur_id].duration = int(kernel_info[func_name]['duration'] / 1e3) + 1
+                self.nodes[cur_id].grid_size = kernel_info[func_name]['grid_size']
+                warps_per_block = max(1, (kernel_info[func_name]['block_size'] + 31) // 32)
+                self.nodes[cur_id].warps = self.nodes[cur_id].grid_size * warps_per_block
+                self.nodes[cur_id].registers = kernel_info[func_name]['registers_per_thread'] * self.nodes[cur_id].threads
+                self.nodes[cur_id].warps_per_sm = kernel_info[func_name]['warps_per_sm']
+                self.nodes[cur_id].blocks_per_sm = self.nodes[cur_id].warps_per_sm / warps_per_block
+                self.nodes[cur_id].memory = kernel_info[func_name]['memory']
+
             # build DAG
             inputs = cur_node['inputs']
             self.nodes[cur_id].ref_cnt = len(inputs)
