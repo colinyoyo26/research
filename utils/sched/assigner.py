@@ -6,6 +6,8 @@ class Assigner:
     def __init__(self, graph):
         self.graph = graph
         self.reset()
+        self.assignment_path = graph.model_path + '_assignment.json'
+        self.order_path = graph.model_path + '_emit_order.json'
 
     def reset(self):
         self.res = {'assignment': []}
@@ -31,14 +33,11 @@ class Assigner:
 
     def save_assignment(self):
         self.optimize()
-        res_json = json.dumps(self.res, indent=2)
+        assignment_json = json.dumps(self.res, indent=2)
         order_json = json.dumps(self.order, indent=2)
 
-        res_path = os.path.dirname(os.path.abspath(__file__)) + '/assignment.json'
-        order_path = os.path.dirname(os.path.abspath(__file__)) + '/emit_order.json'
-
-        open(res_path, 'w').write(res_json)
-        open(order_path, 'w').write(order_json)
+        open(self.assignment_path, 'w').write(assignment_json)
+        open(self.order_path, 'w').write(order_json)
 
     def optimize(self):
         for node_info in self.res['assignment']:

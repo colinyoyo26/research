@@ -3,7 +3,6 @@ import sys
 import os
 import copy
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
-from profiler import Profiler
 import time
 import numpy as np
 from collections import defaultdict
@@ -115,21 +114,19 @@ def method2_internal(graph, num_stream):
     return max(stream_finish_time) / 1e3, lb / 1e3
 
 def method2_assign(graph, **kwargs):
-    profiler = Profiler(model_path=kwargs['model_path'])
     best_time = 100000000
-    b = ()
+    b = []
     for num_stream in range(7, 12):
         graph_copy = copy.deepcopy(graph)
         ft, lb = method2_internal(graph_copy, num_stream)
         assert graph_copy.is_empty()
-        profiler.set_assigner(graph_copy.get_assigner())
-        time = profiler.get_profile_time() * 1e3
+        time = graph_copy.get_latency()
         print(num_stream, time)
         if time < best_time:
-            b = (num_stream, time, ft, ft / lb)
+            b = [num_stream, time, ft, ft / lb]
             best_graph = graph_copy
             best_time = time
             best = num_stream
-    print(b)
     graph.assign(best_graph)
+    b[0] = max([graph[id].stream_id for id in graph.topo_order]) + 1
     return {'max_ops': b[0], 'time': b[1], 'makespan': b[2], 'ratio': b[3]}

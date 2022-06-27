@@ -1,7 +1,8 @@
 import copy
 import os
 import json
-from assigner import Assigner
+import tvm
+from . import Assigner
 
 class Node:
     def __init__(self):
@@ -22,18 +23,23 @@ class Node:
         return self.ref_cnt == 0
     
 class Graph:
-    def __init__(self, json_dict, kernel_info):
+    def __init__(self, model_path, kernel_info, sched_path='/tmp/'):
+        json_dict = json.load(open(model_path + '.json'))
+        self.model_path = model_path
+        self.executor = None
+
         self.num_node = len(json_dict['nodes'])
         self.num_tvm_op = 0
         self.emit_cnt = 0
         self.consume_nodes = []
         self.nodes = [Node() for _ in range(self.num_node)]
-
+        self.topo_order = []
         for cur_id in range(self.num_node):
             cur_node = json_dict['nodes'][cur_id]
             
             # set tvm_op
             if cur_node['op'] == 'tvm_op' and cur_node['attrs']['func_name'] != '__nop':
+                self.topo_order.append(cur_id)
                 self.num_tvm_op += 1
                 self.nodes[cur_id].is_tvm_op = True
                 key = 'attr'
@@ -43,27 +49,33 @@ class Graph:
                 self.nodes[cur_id].func_name = func_name
                 self.nodes[cur_id].duration = int(kernel_info[func_name]['duration'] / 1e3) + 1
                 self.nodes[cur_id].grid_size = kernel_info[func_name]['grid_size']
-                warps_per_block = max(1, (kernel_info[func_name]['block_size'] + 31) // 32)
-                self.nodes[cur_id].warps = self.nodes[cur_id].grid_size * warps_per_block
-                self.nodes[cur_id].registers = kernel_info[func_name]['registers_per_thread'] * self.nodes[cur_id].threads
-                self.nodes[cur_id].warps_per_sm = kernel_info[func_name]['warps_per_sm']
-                self.nodes[cur_id].blocks_per_sm = self.nodes[cur_id].warps_per_sm / warps_per_block
-                self.nodes[cur_id].memory = kernel_info[func_name]['memory']
-
+                self.nodes[cur_id].warps_per_block = (kernel_info[func_name]['block_size'] + 31) // 32
+                self.nodes[cur_id].registers_per_block = kernel_info[func_name]['registers_per_thread'] * kernel_info[func_name]['block_size']
+                self.nodes[cur_id].shr_mem_per_block = kernel_info[func_name]['dyn_mem'] + kernel_info[func_name]['stc_mem']
             # build DAG
             inputs = cur_node['inputs']
-            self.nodes[cur_id].ref_cnt = len(inputs)
             for input_id, _, _ in inputs:
-                if input_id not in json_dict['arg_nodes']:
-                    self.nodes[cur_id].inputs.append(input_id)
-                self.nodes[input_id].outputs.append(cur_id)
+                inputs = [input_id]
+                if input_id in json_dict['arg_nodes']:
+                    inputs = self.nodes[input_id].inputs
+                self.nodes[cur_id].inputs += inputs
+                
+            self.nodes[cur_id].inputs = list(set(self.nodes[cur_id].inputs))
+            self.nodes[cur_id].ref_cnt = len(self.nodes[cur_id].inputs)
+            
+            if cur_id not in json_dict['arg_nodes']:
+                for i in self.nodes[cur_id].inputs:
+                    self.nodes[i].outputs.append(cur_id)
+
         
+        # assert
         for id in json_dict['arg_nodes']:
             assert not self.nodes[id].is_tvm_op
+        for id in self.topo_order:
+            assert self.nodes[id].is_tvm_op
+            assert all([self.nodes[i].is_tvm_op for i in self.nodes[id].inputs])
 
-        self.ready_list = set(json_dict['arg_nodes'])
-        for cur_id in json_dict['arg_nodes']:
-            self.consume(cur_id)
+        self.ready_list = set([id for id in self.topo_order if not self.nodes[id].ref_cnt])
 
     def __getitem__(self, i):
         return self.nodes[i]
@@ -75,6 +87,9 @@ class Graph:
         self.consume_nodes = copy.deepcopy(graph.consume_nodes)
         self.nodes = copy.deepcopy(graph.nodes)
         self.ready_list = copy.deepcopy(graph.ready_list)
+
+    def get_topo(self):
+        return copy.deepcopy(self.topo_order)
 
     def ready_nodes(self):
         return list(self.ready_list)
@@ -115,8 +130,7 @@ class Graph:
             self.nodes[output_id].ref_cnt -= 1
             if self.nodes[output_id].is_ready():
                 self.ready_list.add(output_id)
-                if not self.nodes[output_id].is_tvm_op:
-                    self.consume(output_id)
+                assert self.nodes[output_id].is_tvm_op
         self.ready_list.remove(id)
         self.consume_nodes.append(id)
 
@@ -134,13 +148,11 @@ class Graph:
         
         for output_id in self.nodes[id].outputs:
             self.nodes[output_id].ref_cnt += 1
-            if self.nodes[output_id] == 1:
-                assert output_id in ready_list or not self.nodes[output_id].is_tvm_op
+            if self.nodes[output_id].ref_cnt == 1:
+                assert output_id in self.ready_list
                 self.ready_list.remove(output_id)
         
-        if not self.nodes[id].is_tvm_op:
-            assert self.emit_nodes[-1] in self.nodes[id].inputs
-            self.undo()
+        assert self.nodes[id].is_tvm_op
 
     def reset(self):
         while self.consume_nodes:
@@ -164,6 +176,27 @@ class Graph:
     def save_assignment(self):
         assigner = self.get_assigner()
         assigner.save_assignment()
+    
+    def get_executor(self):
+        import utils
+        json, lib, _ = utils.tvm.util.load(self.model_path)
+        return tvm.contrib.graph_executor.create(json, lib, tvm.cuda(0))
+        
+    def get_latency(self):
+        if not self.executor:
+            self.executor = self.get_executor()
+            for _ in range(20): # warm up
+                self.executor.run()
+        assigner = self.get_assigner()
+        assigner.save_assignment()
+        self.executor.set_schedule(assigner.order_path, assigner.assignment_path)
+        repeat = 20
+        bench_res = self.executor.benchmark(tvm.cuda(0), repeat=repeat, end_to_end=True)
+        res_time = (bench_res.mean * repeat - bench_res.max - bench_res.min) / (repeat - 2)
+        return res_time * 1e3
             
     def is_empty(self):
+        assert len(self.consume_nodes) == self.emit_cnt
+        if len(self.ready_list) == 0:
+            assert self.emit_cnt == self.num_tvm_op
         return len(self.ready_list) == 0
