@@ -25,7 +25,7 @@ def run_tvm(executor, x):
 def run_tf(executor, x):
     return executor(x)
 
-def get_executor(model, input_shape, compiler, tvm_assign_method, batch_size):
+def get_executor(model_name, model, input_shape, compiler, tvm_assign_method, batch_size, res_file):
     input_shape = (batch_size, input_shape[0], input_shape[1], input_shape[2])
     tf_func = tf.function(lambda x : model.call(x, training=False),
         input_signature=[tf.TensorSpec(input_shape, tf.float32)],
@@ -47,7 +47,9 @@ def get_executor(model, input_shape, compiler, tvm_assign_method, batch_size):
         os.system(f'python ../stream_assignment/stream_assignment.py --json_path {tvm_cache}.json '
                                                                     f'--log_file {log_path} ' 
                                                                     f'--method {tvm_assign_method} '
-                                                                    f'--model_path {tvm_cache}')
+                                                                    f'--model_path {tvm_cache} '
+                                                                    f'--res_entry {compiler}_{model_name}_{tvm_assign_method}_{batch_size} '
+                                                                    f'--res_file {res_file}')
         json, lib, params = utils.tvm.util.load(tvm_cache)
         dev = tvm.cuda(0)
         
@@ -71,6 +73,7 @@ if __name__ == '__main__':
     parser.add_argument('--tvm_assign_method', type=str, default='default')
     parser.add_argument('--save_res', type=bool, default=False)
     parser.add_argument('--save_dir', type=str, default='')
+    parser.add_argument('--res_file', type=str, default=None, help='save algorithm result')
     args = vars(parser.parse_args())
 
     n = args['n']
@@ -82,6 +85,7 @@ if __name__ == '__main__':
     tvm_assign_method = args['tvm_assign_method']
     save_res = args['save_res']
     save_dir = args['save_dir']
+    res_file = args['res_file']
 
     n = (n + batch_size - 1) // batch_size * batch_size
     warm_size = (100 + batch_size - 1) // batch_size * batch_size
@@ -93,7 +97,7 @@ if __name__ == '__main__':
         exit(1)
 
     model, input_shape = utils.tf.model.select_model(model_name)
-    executor = get_executor(model, input_shape, compiler, tvm_assign_method, batch_size)
+    executor = get_executor(model_name, model, input_shape, compiler, tvm_assign_method, batch_size, res_file)
     run = run_tf if compiler == 'if' else run_tvm
 
     xs = np.random.rand(max(n, warm_size), input_shape[0], input_shape[1], input_shape[2])
