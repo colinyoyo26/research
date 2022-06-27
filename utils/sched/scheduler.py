@@ -22,18 +22,22 @@ def doit(json_dict, tvm_cache, method, log_file, res_file, res_entry):
     res_dict = assign_func(graph)
 
     if res_file:
-        save_res(res_file, res_entry, res_dict)
+        save_res(res_file, res_entry, res_dict, graph)
     graph.save_assignment()
 
-def save_res(res_file, res_entry, res_dict):
+def save_res(res_file, res_entry, res_dict, graph):
     try:
         res_json = json.load(open(res_file, 'r'))
     except:
         res_json = {}
-
+    if not res_entry in res_json.keys():
+        res_json[res_entry] = {}
+    assigner = graph.get_assigner()
+    assigner.optimize()
+    res_json[res_entry]['synchronizations'] = sum([len(a['wait_list']) for a in assigner.res['assignment']]) 
+    res_json[res_entry]['max_ops'] = max([a['stream_id'] + 1 for a in assigner.res['assignment']]) 
+    res_json[res_entry]['time(ms)'] = graph.get_latency()
     for key, val in res_dict.items():
-        if not res_entry in res_json.keys():
-            res_json[res_entry] = {}
         res_json[res_entry][key] = val
     s = json.dumps(res_json, indent=2)
     open(res_file, 'w').write(s)

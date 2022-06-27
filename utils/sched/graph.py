@@ -156,7 +156,7 @@ class Graph:
         assert self.nodes[id].is_tvm_op
 
     def reset(self):
-        while self.consume_nodes:
+        while self.emit_cnt:
             self.undo()
 
     def emit_node(self, id, sid, wait_list):
@@ -182,8 +182,8 @@ class Graph:
         import utils
         json, lib, _ = utils.tvm.util.load(self.model_path)
         return tvm.contrib.graph_executor.create(json, lib, tvm.cuda(0))
-        
-    def get_latency(self):
+
+    def get_latency(self, repeat=50):
         if not self.executor:
             self.executor = self.get_executor()
             for _ in range(20): # warm up
@@ -191,7 +191,6 @@ class Graph:
         assigner = self.get_assigner()
         assigner.save_assignment()
         self.executor.set_schedule(assigner.order_path, assigner.assignment_path)
-        repeat = 20
         bench_res = self.executor.benchmark(tvm.cuda(0), repeat=repeat, end_to_end=True)
         res_time = (bench_res.mean * repeat - bench_res.max - bench_res.min) / (repeat - 2)
         return res_time * 1e3

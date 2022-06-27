@@ -77,7 +77,6 @@ def ios_internal(graph, state, chains, dp, stage_latency, max_groups=8, max_ops=
         if bits not in stage_latency.keys():
             stage_latency[bits] = max(graph.get_latency() - prev_time, 0)
         #assert stage_time > 0 or print(stage_time, prev_time)
-        print(stage, stage_latency[bits])
 
         time = stage_latency[bits] + ios_internal(graph, state ^ bits, chains, dp, stage_latency, max_groups, max_ops, ends)
 
@@ -86,8 +85,6 @@ def ios_internal(graph, state, chains, dp, stage_latency, max_groups=8, max_ops=
         
         for _ in range(bin(bits).count('1')):
             graph.undo()
-
-        print(time)
     
     assert state in dp.keys()
     return dp[state][2]
@@ -111,7 +108,5 @@ def ios_assign(graph, **kwargs):
         
         state = state ^ bits
         total_time += time
-        prev_ends = [g[-1] for g in stage]
-
-    print(total_time)
-    graph.assign(ios_internal(graph, state))    
+        prev_ends = [g[-1] for g in stage]    
+    return {'makespan': total_time}
