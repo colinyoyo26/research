@@ -14,47 +14,6 @@ def reverse_tc(tc):
             rev_tc[o].add(id)
     return rev_tc
 
-def get_transitive_closure(graph, subset):
-    subset = set(subset)
-    rev_topo = reversed([k for k in graph.get_topo() if k in subset])
-    tc = defaultdict(lambda: set())
-    for id in rev_topo:
-        tc[id].add(id)
-        outputs = [i for i in graph[id].outputs if i in subset]
-        for out in outputs:
-            tc[id].update(tc[out])
-    return tc
-
-def long_chain(graph, rev_tc, subset):
-    subset = set(subset)
-    prev = defaultdict(lambda: -1)
-    depth = defaultdict(lambda: 0)
-    topo = [i for i in graph.get_topo() if i in subset]
-    for id in topo:
-        depth[id] = 0
-        inputs = [i for i in rev_tc[id] if i in subset and i != id]
-        for i in inputs:
-            if depth[id] < depth[i] + 1:
-                depth[id] = depth[i] + 1
-                prev[id] = i
-    u = v = max(depth.keys(), key=lambda x: depth[x])
-    chain = []
-    while u != -1:
-        chain.append(u)
-        u = prev[u]
-    assert len(chain) == depth[v] + 1
-    return chain[::-1]
-
-def get_chains(graph):
-    chains = []
-    rev_tc = reverse_tc(get_transitive_closure(graph, graph.get_topo()))
-    subset = set(graph.get_topo())
-    while subset:
-        chain = long_chain(graph, rev_tc, subset)
-        chains.append(chain)
-        subset -= set(chain)
-    return chains
-
 def list_to_bits(l):
     if isinstance(l, list):
         return sum([list_to_bits(i) for i in l])
@@ -62,7 +21,7 @@ def list_to_bits(l):
 
 def starting_iterator(state, chains, graph, max_groups, max_ops):
     subset = set([i for i in range(graph.num_node) if (1 << i) & state])
-    rev_tc = reverse_tc(get_transitive_closure(graph, subset))
+    rev_tc = reverse_tc(graph.get_transitive_closure(subset))
 
     chains = [[i for i in chain if i in subset] for chain in chains]
     chains = [chain[:min(max_ops, len(chains))] for chain in chains if chain and len(rev_tc[chain[0]]) <= max_ops]
@@ -137,7 +96,7 @@ def ios_assign(graph, **kwargs):
     state = sum([1 << i for i in graph.get_topo()])
     dp = defaultdict(lambda: ([], 0, 1000000))
     stage_latency = defaultdict(lambda: -1)
-    chains = get_chains(graph)
+    chains = graph.get_chains()
     ios_internal(graph, state, chains, dp, stage_latency)
    
     total_time = 0

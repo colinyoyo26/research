@@ -201,3 +201,44 @@ class Graph:
         if len(self.ready_list) == 0:
             assert self.emit_cnt == self.num_tvm_op
         return len(self.ready_list) == 0
+
+    def get_transitive_closure(self, subset):
+        subset = set(subset)
+        rev_topo = reversed([k for k in self.get_topo() if k in subset])
+        tc = defaultdict(lambda: set())
+        for id in rev_topo:
+            tc[id].add(id)
+            outputs = [i for i in self[id].outputs if i in subset]
+            for out in outputs:
+                tc[id].update(tc[out])
+        return tc
+
+    def long_chain(self, tc, subset):
+        subset = set(subset)
+        suc = defaultdict(lambda: -1)
+        depth = defaultdict(lambda: 0)
+        topo = [i for i in self.get_topo() if i in subset]
+        for id in reversed(topo):
+            depth[id] = 0
+            outs = [i for i in tc[id] if i in subset and i != id]
+            for o in outs:
+                if depth[id] < depth[o] + 1:
+                    depth[id] = depth[o] + 1
+                    suc[id] = o
+        u = v = max(depth.keys(), key=lambda x: depth[x])
+        chain = []
+        while u != -1:
+            chain.append(u)
+            u = suc[u]
+        assert len(chain) == depth[v] + 1
+        return chain
+
+    def get_chains(self):
+        chains = []
+        tc = self.get_transitive_closure(self.get_topo())
+        subset = set(self.get_topo())
+        while subset:
+            chain = self.long_chain(tc, subset)
+            chains.append(chain)
+            subset -= set(chain)
+        return chains
