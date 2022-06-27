@@ -129,4 +129,5 @@ def method2_assign(graph, **kwargs):
             best = num_stream
     graph.assign(best_graph)
     b[0] = max([graph[id].stream_id for id in graph.topo_order]) + 1
+    print(b)
     return {'max_ops': b[0], 'time': b[1], 'makespan': b[2], 'ratio': b[3]}

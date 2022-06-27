@@ -1,4 +1,3 @@
-from method import method_internal
 
 def default_assign(graph, **kwargs):
     while not graph.is_empty():

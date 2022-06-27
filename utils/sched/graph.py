@@ -1,8 +1,9 @@
 import copy
 import os
+from collections import defaultdict
 import json
 import tvm
-from . import Assigner
+from .assigner import Assigner
 
 class Node:
     def __init__(self):
@@ -23,7 +24,7 @@ class Node:
         return self.ref_cnt == 0
     
 class Graph:
-    def __init__(self, model_path, kernel_info, sched_path='/tmp/'):
+    def __init__(self, model_path, kernel_info=defaultdict(lambda: defaultdict(lambda: 1))):
         json_dict = json.load(open(model_path + '.json'))
         self.model_path = model_path
         self.executor = None
