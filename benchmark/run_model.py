@@ -16,7 +16,7 @@ ROOT_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..')
 sys.path.append(ROOT_PATH)
 import utils
 from utils import cuda
-from utils import sched
+from utils.sched import schedule
 
 def run_tvm(executor, x):
     executor.set_input('x', x)
@@ -26,7 +26,7 @@ def run_tvm(executor, x):
 def run_tf(executor, x):
     return executor(x)
 
-def get_executor(model_name, model, input_shape, compiler, tvm_assign_method, batch_size, res_file):
+def get_executor(model_name, model, input_shape, compiler, tvm_assign_method, batch_size, res_file, run_sched):
     input_shape = (batch_size, input_shape[0], input_shape[1], input_shape[2])
     tf_func = tf.function(lambda x : model.call(x, training=False),
         input_signature=[tf.TensorSpec(input_shape, tf.float32)],
@@ -46,7 +46,9 @@ def get_executor(model_name, model, input_shape, compiler, tvm_assign_method, ba
         log_file = os.path.abspath(f'./logs/{compiler}_{model_name}_default_{batch_size}_gpukernsum.csv')
         # generate assign.json file 
         res_entry = f'{compiler}_{model_name}_{tvm_assign_method}_{batch_size}'
-        sched.schedule(log_file, tvm_cache, res_entry, res_file, tvm_assign_method)
+        
+        if run_sched:
+            schedule(log_file, tvm_cache, res_entry, res_file, tvm_assign_method)
 
         json, lib, params = utils.tvm.util.load(tvm_cache)
         dev = tvm.cuda(0)
@@ -72,6 +74,7 @@ if __name__ == '__main__':
     parser.add_argument('--save_res', type=bool, default=False)
     parser.add_argument('--save_dir', type=str, default='')
     parser.add_argument('--res_file', type=str, default=None, help='save algorithm result')
+    parser.add_argument('--sched', type=bool, default=False, help='Whether run the scheduling algorithm')
     args = vars(parser.parse_args())
 
     n = args['n']
@@ -84,6 +87,7 @@ if __name__ == '__main__':
     save_res = args['save_res']
     save_dir = args['save_dir']
     res_file = args['res_file']
+    run_sched = args['sched']
 
     n = (n + batch_size - 1) // batch_size * batch_size
     warm_size = (100 + batch_size - 1) // batch_size * batch_size
@@ -95,7 +99,7 @@ if __name__ == '__main__':
         exit(1)
 
     model, input_shape = utils.tf.model.select_model(model_name)
-    executor = get_executor(model_name, model, input_shape, compiler, tvm_assign_method, batch_size, res_file)
+    executor = get_executor(model_name, model, input_shape, compiler, tvm_assign_method, batch_size, res_file, run_sched)
     run = run_tf if compiler == 'if' else run_tvm
 
     xs = np.random.rand(max(n, warm_size), input_shape[0], input_shape[1], input_shape[2])

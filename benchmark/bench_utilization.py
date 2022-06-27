@@ -17,9 +17,9 @@ model_names = ['NASNetMobile', 'ResNeXt50', 'Ensemble[NASNetMobile_NASNetMobile]
 model_names = model_names
 #model_names = ['NASNetMobile', 'Ensemble[ResNeXt50_ResNeXt50]', 'Ensemble[NASNetMobile_NASNetMobile]', 'Ensemble[NASNetMobile_ResNeXt50_ResNet50]']
 
-batch_sizes = [8]
+batch_sizes = [1, 8]
 compilers = ['tvm']
-tvm_assign_methods = ['default', 'bfs']
+tvm_assign_methods = ['bfs', 'method2', 'ios']
 nr_inputs = 1
 
 def doit(compiler, model_name, tvm_assign_method, batch_size, res_file):
@@ -42,7 +42,7 @@ def doit(compiler, model_name, tvm_assign_method, batch_size, res_file):
     label = f'{compiler}_{model_name}_{tvm_assign_method}_{batch_size}'
     print(label, ':')
 
-    command = run_model_command + ['--print_time', 'true', '--res_file', res_file]
+    command = run_model_command + ['--print_time', 'true', '--res_file', res_file, '--sched', 'true']
     subprocess.run(command)
 
     if tvm_assign_method == 'default':
