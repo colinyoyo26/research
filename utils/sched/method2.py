@@ -7,13 +7,10 @@ import time
 import numpy as np
 from collections import defaultdict
 
-def get_lower_bound(graph, max_resources, max_ops):
-    graph = copy.deepcopy(graph)
+def get_lower_bound(graph, max_resources):
     dot_sum = [0] * len(max_resources)
     critical_duration = 0
-    
-    while not graph.is_empty():
-        id = graph.ready_nodes()[0]
+    for id in graph.get_topo():
         inputs = graph.get_inputs(id)
         graph[id].finish_time = graph[id].duration
         if inputs:
@@ -23,7 +20,6 @@ def get_lower_bound(graph, max_resources, max_ops):
         op_resources = get_op_resources(id, graph)
         for i, op_res in enumerate(op_resources):
             dot_sum[i] += graph[id].duration * op_res
-        graph.emit_node(id, 0, [])
     
     lbs = [ds / mr for ds, mr in zip(dot_sum, max_resources)] + [critical_duration]
     return max(lbs)
@@ -51,7 +47,7 @@ def method2_internal(graph, num_stream):
     max_resources = [max_resident_thread_blocks, max_ops]
     num_resources = len(max_resources)
 
-    lb = get_lower_bound(graph, max_resources, max_ops)
+    lb = get_lower_bound(graph, max_resources)
 
     stream_finish_time = [0] * num_stream
     resources = np.array([[0.] * num_resources] * max_time)
@@ -115,19 +111,16 @@ def method2_internal(graph, num_stream):
 
 def method2_assign(graph, **kwargs):
     best_time = 100000000
-    b = []
-    for num_stream in range(7, 12):
-        graph_copy = copy.deepcopy(graph)
-        ft, lb = method2_internal(graph_copy, num_stream)
-        assert graph_copy.is_empty()
-        time = graph_copy.get_latency()
-        print(num_stream, time)
+    best = []
+    for num_stream in range(2, 64):
+        ft, lb = method2_internal(graph, num_stream)
+        assert graph.is_empty()
+        time = graph.get_latency()
+        graph.reset()
         if time < best_time:
-            b = [num_stream, time, ft, ft / lb]
-            best_graph = graph_copy
+            best = [num_stream, time, ft, ft / lb]
             best_time = time
-            best = num_stream
-    graph.assign(best_graph)
-    b[0] = max([graph[id].stream_id for id in graph.topo_order]) + 1
-    print(b)
-    return {'max_ops': b[0], 'time': b[1], 'makespan': b[2], 'ratio': b[3]}
+
+    method2_internal(graph, best[0])
+    best[0] = max([graph[id].stream_id for id in graph.get_topo()]) + 1
+    return {'max_ops': best[0], 'time': best[1], 'makespan': best[2], 'ratio': best[3]}
