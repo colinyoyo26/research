@@ -13,7 +13,7 @@ from baseline import default_assign, bfs_assign
 from method2 import method2_assign
 from ios import ios_assign
 
-def doit(json_dict, tvm_cache, method, log_file, res_file, res_entry):
+def doit(tvm_cache, method, log_file, res_file, res_entry):
     assign_func = get_assign_func(method)
     kernel_info=defaultdict(lambda: defaultdict(lambda: 1))
     if assign_func != default_assign:
@@ -42,6 +42,19 @@ def save_res(res_file, res_entry, res_dict, graph):
     s = json.dumps(res_json, indent=2)
     open(res_file, 'w').write(s)
 
+def assign_storage(json_path, tvm_cache):
+    f = open(json_path)
+    json_dict = json.load(f)
+    graph = Graph(tvm_cache)
+    topo = graph.get_topo()
+    chains = graph.get_chains()
+
+    assert graph.num_node == len(json_dict['attrs']['storage_id'][1])
+    for i in range(graph.num_node):
+        json_dict['attrs']['storage_id'][1][i] = i
+    s = json.dumps(json_dict, indent=2)
+    open(json_path, 'w').write(s)
+
 def get_assign_func(method):
     methods = {'bfs': bfs_assign,
                'method2': method2_assign,
@@ -53,12 +66,5 @@ def get_assign_func(method):
 
 def schedule(log_file, tvm_cache, res_entry, res_file=None, method='default'):
     json_path = tvm_cache + '.json'
-    f = open(json_path)
-    json_dict = json.load(f)
-    doit(json_dict, tvm_cache, method, log_file, res_file, res_entry)
-
-    # make storage to be correct in a brute force way
-    for i in range(len(json_dict['attrs']['storage_id'][1])):
-        json_dict['attrs']['storage_id'][1][i] = i
-    s = json.dumps(json_dict, indent=2)
-    open(json_path, 'w').write(s)
+    assign_storage(json_path, tvm_cache)
+    doit(tvm_cache, method, log_file, res_file, res_entry)
