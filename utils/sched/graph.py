@@ -48,7 +48,7 @@ class Graph:
                     key = 'attrs'
                 func_name = cur_node[key]['func_name']
                 self.nodes[cur_id].func_name = func_name
-                self.nodes[cur_id].duration = int(kernel_info[func_name]['duration'] / 1e3) + 1
+                self.nodes[cur_id].duration = kernel_info[func_name]['duration'] / 1e3
                 self.nodes[cur_id].grid_size = kernel_info[func_name]['grid_size']
                 self.nodes[cur_id].warps_per_block = (kernel_info[func_name]['block_size'] + 31) // 32
                 self.nodes[cur_id].registers_per_block = kernel_info[func_name]['registers_per_thread'] * kernel_info[func_name]['block_size']

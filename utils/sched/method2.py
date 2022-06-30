@@ -38,82 +38,88 @@ def get_op_resources(id, graph):
         max_shared_mem_per_sm // max(1, graph[id].shr_mem_per_block)]) * 82)
     return [blocks_per_wave, 1]
 
-def method2_internal(graph, num_stream):
-
+def critical_distance(graph):
+    cd = defaultdict(lambda: 0)
+    for id in reversed(graph.get_topo()):
+        cd[id] = graph[id].duration
+        for o in graph[id].outputs:
+            cd[id] = max(cd[id], cd[o] + graph[id].duration)
+    return cd
+    
+def method2_internal(graph, num_stream, cd):
     max_resident_thread_blocks = int(82 * 16 * 1)
     max_ops = num_stream
 
-    max_time = 2000000
     max_resources = [max_resident_thread_blocks, max_ops]
     num_resources = len(max_resources)
 
     lb = get_lower_bound(graph, max_resources)
-
     stream_finish_time = [0] * num_stream
-    resources = np.array([[0.] * num_resources] * max_time)
-    start_times = defaultdict(lambda : -1)
+    
+    s = {}
+    resource_variations = defaultdict(lambda: np.array([0.] * num_resources))
+    start_time = 0
+
+    def resource_usage_at_time(time):
+        nonlocal resource_variations, num_resources
+        usage = np.array([0.] * num_resources)
+        for t, variation in resource_variations.items():
+            if t <= time:
+                usage += variation
+        assert np.all(usage >= 0) and np.all(usage <= max_resources)
+        return usage
+ 
+    def operators_can_start_at_time(time, R):
+        nonlocal resource_variations, max_resources, s, graph
+        usage = resource_usage_at_time(time)
+        S = []
+        
+        for id in R:
+            if not id in s.keys():
+                inputs = graph[id].inputs
+                s[id] = 0 if not inputs else max([s[i] + graph[i].duration for i in inputs])
+            if s[id] <= time and np.all(get_op_resources(id, graph) + usage <= max_resources):
+                S.append(id)
+        return S
 
     def get_latest_inputs(id):
-        nonlocal graph
+        nonlocal graph, s
         inputs = graph.get_inputs(id)
         if not inputs:
             return []
-        mx_ft = max([graph[i].finish_time for i in inputs])
-        return [i for i in inputs if graph[i].finish_time == mx_ft]
-    
-    def max_predecessor_fisish_time(id):
-        nonlocal graph
-        latest_inputs = get_latest_inputs(id)
-        if not latest_inputs:
-            return 0
-        return graph[latest_inputs[0]].finish_time
-
-    def get_earliest_start_time(id):
-        nonlocal graph, resources, max_resources, start_times
-        
-        op_resources = get_op_resources(id, graph)
-        if start_times[id] == -1:
-            start_times[id] = max_predecessor_fisish_time(id)
-        st = start_times[id]
-        ft = st + graph[id].duration
-        time = st
-        while time < ft:
-            if np.any(resources[time] + op_resources > max_resources):
-                assert not np.all(resources[st: ft] == 0)
-                st = time + 1
-                ft = st + graph[id].duration
-            time += 1
-        start_times[id] = st
-        return st
+        mx_ft = max([s[i] + graph[i].duration for i in inputs])
+        return [i for i in inputs if s[i] + graph[i].duration == mx_ft]
 
     while not graph.is_empty():
-        nodes = graph.ready_nodes()
-        id = min(nodes,
-            key=lambda x : (get_earliest_start_time(x), -get_op_resources(x, graph)[0]))
+        S = operators_can_start_at_time(start_time, graph.ready_nodes())
+        if not S:
+            start_time = min([t for t in resource_variations.keys() if t > start_time])
+        else:
+            id = max(S, key=lambda x: cd[x])  # selection rule
+            s[id] = start_time
+            op_resources = get_op_resources(id, graph)
+            resource_variations[start_time] += op_resources
+            resource_variations[start_time + graph[id].duration] -= op_resources
 
-        latest_inputs = get_latest_inputs(id)
-        candidates = [graph[i].stream_id for i in latest_inputs]
+            candidates_streams = [graph[i].stream_id for i in get_latest_inputs(id)]
 
-        st = get_earliest_start_time(id)
-
-        sid = min(enumerate(stream_finish_time),
-                  key=lambda x :  (max(x[1], st),
-                                  x[0] not in candidates,
-                                  x[1] == 0,
-                                  x[0]))[0]
-        ft = st + graph[id].duration
-        graph[id].finish_time = stream_finish_time[sid] = ft 
-        resources[st: ft] += get_op_resources(id, graph)
-
-        graph.emit_node(id, sid, graph.get_inputs(id))
+            sid = min(enumerate(stream_finish_time),
+                    key=lambda x :  (max(x[1], start_time),
+                    x[0] not in candidates_streams,
+                    x[1] == 0,
+                    x[0]))[0]
+            assert stream_finish_time[sid] <= start_time
+            stream_finish_time[sid] = start_time + graph[id].duration
+            graph.emit_node(id, sid, graph.get_inputs(id))
     graph[graph.consume_nodes[-1]].stream_id = 0
     return max(stream_finish_time) / 1e3, lb / 1e3
 
 def method2_assign(graph, **kwargs):
     best_time = 100000000
     best = []
-    for num_stream in range(2, 64):
-        ft, lb = method2_internal(graph, num_stream)
+    cd = critical_distance(graph)
+    for num_stream in range(5, 32):
+        ft, lb = method2_internal(graph, num_stream, cd)
         assert graph.is_empty()
         time = graph.get_latency()
         graph.reset()
@@ -121,6 +127,6 @@ def method2_assign(graph, **kwargs):
             best = [num_stream, time, ft, ft / lb]
             best_time = time
 
-    method2_internal(graph, best[0])
+    method2_internal(graph, best[0], cd)
     best[0] = max([graph[id].stream_id for id in graph.get_topo()]) + 1
     return {'makespan': best[2], 'ratio': best[3]}
