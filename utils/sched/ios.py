@@ -54,18 +54,20 @@ def starting_iterator(state, chains, graph, max_groups, max_ops):
                 assert len(stage) == len(chain_indices)
                 yield stage
 
-    for mask in list(range(1, 1 << len(chains))):
+    for mask in range((1 << len(chains)) - 1, 0, -1):
         chain_indices = [i for i in range(len(chains)) if mask & (1 << i)]
         if len(chain_indices) <= min(max_groups, len(chains)):
             yield from yield_valid_stages(chain_indices)
 
 def ios_internal(graph, state, chains, dp, stage_latency, max_groups=8, max_ops=3, prev_ends=[]):
     if graph.is_empty():
+        assert not state
         return 0
     if state in dp.keys():
         return dp[state][2]
     prev_time = graph.get_latency()
     for stage in starting_iterator(state, chains, graph, max_groups, max_ops):
+        print(state, stage)
         bits = list_to_bits(stage)
         assert (state & bits) == bits or print(state & bits, bits)
         ends = [g[-1] for g in stage]
