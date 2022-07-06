@@ -39,13 +39,24 @@ def get_op_resources(id, graph):
     return [blocks_per_wave, 1]
 
 def critical_distance(graph):
-    cd = defaultdict(lambda: 0)
-    for id in reversed(graph.get_topo()):
-        cd[id] = graph[id].duration
-        for o in graph[id].outputs:
-            cd[id] = max(cd[id], cd[o] + graph[id].duration)
+    cd = {}
+    tc = graph.get_transitive_closure(graph.get_topo())
+
+    for id in graph.get_topo():
+        cd[id] = sum([graph[i].duration for i in tc[id]])
     return cd
-    
+
+def critical_length(graph):
+    cl = {}
+    res = 0
+    for id in graph.get_topo():
+        cl[id] = graph[id].duration
+        inputs = graph[id].inputs
+        if inputs:
+            cl[id] += max([cl[i] for i in inputs])
+        res = max(res, cl[id])
+    return res
+
 def method2_internal(graph, num_stream, cd):
     max_resident_thread_blocks = int(82 * 16 * 1)
     max_ops = num_stream
@@ -101,11 +112,11 @@ def method2_internal(graph, num_stream, cd):
             resource_variations[start_time] += op_resources
             resource_variations[start_time + graph[id].duration] -= op_resources
 
-            candidates_streams = [graph[i].stream_id for i in get_latest_inputs(id)]
+            streams_cadidates = set([graph[i].stream_id for i in get_latest_inputs(id)])
 
             sid = min(enumerate(stream_finish_time),
                     key=lambda x :  (max(x[1], start_time),
-                    x[0] not in candidates_streams,
+                    x[0] not in streams_cadidates,
                     x[1] == 0,
                     x[0]))[0]
             assert stream_finish_time[sid] <= start_time
@@ -118,7 +129,7 @@ def method2_assign(graph, **kwargs):
     best_time = 100000000
     best = []
     cd = critical_distance(graph)
-    for num_stream in range(5, 32):
+    for num_stream in range(1, 65):
         ft, lb = method2_internal(graph, num_stream, cd)
         assert graph.is_empty()
         time = graph.get_latency()
@@ -129,4 +140,4 @@ def method2_assign(graph, **kwargs):
 
     method2_internal(graph, best[0], cd)
     best[0] = max([graph[id].stream_id for id in graph.get_topo()]) + 1
-    return {'makespan': best[2], 'ratio': best[3]}
+    return {'makespan': best[2], 'ratio': best[3], 'critical': critical_length(graph) / 1e3}

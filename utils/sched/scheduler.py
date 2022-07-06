@@ -15,7 +15,7 @@ from ios import ios_assign
 
 def doit(tvm_cache, method, log_file, res_file, res_entry):
     assign_func = get_assign_func(method)
-    kernel_info=defaultdict(lambda: defaultdict(lambda: 1))
+    kernel_info = defaultdict(lambda: defaultdict(lambda: 1))
     if assign_func != default_assign:
         kernel_info = nvlog.info.get_kernel_info(log_file)
     graph = Graph(tvm_cache, kernel_info)

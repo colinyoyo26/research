@@ -1,8 +1,7 @@
 
 def default_assign(graph, **kwargs):
-    while not graph.is_empty():
-        for id in graph.ready_nodes():
-            graph.emit_node(id, 0, [])
+    for id in graph.get_topo():
+        graph.emit_node(id, 0, [])
     return {}
 def bfs_assign(graph, **kwargs):
     s = set()
