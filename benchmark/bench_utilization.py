@@ -17,9 +17,9 @@ model_names = ['NASNetMobile', 'ResNeXt50', 'Ensemble[NASNetMobile_NASNetMobile]
 model_names = model_names
 #model_names = ['NASNetMobile', 'Ensemble[ResNeXt50_ResNeXt50]', 'Ensemble[NASNetMobile_NASNetMobile]', 'Ensemble[NASNetMobile_ResNeXt50_ResNet50]']
 
-batch_sizes = [1, 8]
+batch_sizes = [1]
 compilers = ['tvm']
-tvm_assign_methods = ['bfs', 'method2', 'ios']
+tvm_assign_methods = ['default', 'bfs', 'method2']
 nr_inputs = 1
 
 def doit(compiler, model_name, tvm_assign_method, batch_size, res_file):
@@ -27,13 +27,6 @@ def doit(compiler, model_name, tvm_assign_method, batch_size, res_file):
 
     log_file = f'logs/{compiler}_{model_name}_{tvm_assign_method}_{batch_size}'
     log_launch_file = f'logs/{compiler}_{model_name}_default_{batch_size}_launch.log'
-
-    profile_command = ['nsys', 'profile', '-c', 'cudaProfilerApi', '--export', 'sqlite', '-f', 'true', '-o', 'report']
-    stats_command = ['nsys', 'stats', 'report.sqlite', '-f', 'csv,table', '--report', 'gpukernsum,cudaapisum', 
-                            '--force-overwrite', 'true', '-o', log_file]
-    
-    ncu_command = ['ncu', '--replay-mode', 'range', '--set', 'full', '-f', '-o', 'ncu_tmp']
-    ncu_stats_command = ['ncu', '--import', 'ncu_tmp.ncu-rep', '-f', '--csv', '--log-file', log_file + '.log']
 
     run_model_command = [python, 'run_model.py', '--n', str(nr_inputs),
         '--warmup', 'true', '--tvm_assign_method', tvm_assign_method, 
@@ -46,20 +39,9 @@ def doit(compiler, model_name, tvm_assign_method, batch_size, res_file):
     subprocess.run(command)
 
     if tvm_assign_method == 'default':
-        command = ['ncu', '--profile-from-start', 'off', '--set', 'default', '-f', '-o', 'ncu_tmp'] + run_model_command
-        subprocess.run(command, capture_output=True)
-        subprocess.run(['ncu', '--import', 'ncu_tmp.ncu-rep', '-f', '--csv', '--log-file', log_launch_file]) 
-    
-    command = profile_command + run_model_command
-    subprocess.run(command, capture_output=True)
-    subprocess.run(stats_command, capture_output=True)
-
-    command = ncu_command + run_model_command
-    subprocess.run(command, capture_output=True)
-    subprocess.run(ncu_stats_command)
-    
-    tvm_cache = f'./tvm_cache/{model_name}_{batch_size}'
-    write_metrics(tvm_cache, log_file + '.log', log_launch_file, res_file, label)
+        command = ['nvprof', '--csv', '--print-gpu-trace', '--continuous-sampling-interval', '1',
+        '--profile-from-start', 'off', '--log-file', f'{log_launch_file}'] + run_model_command
+        subprocess.run(command, capture_output=False)
 
 def write_metrics(tvm_cache, log_file, log_launch_file, res_file, res_entry):
     res_json = json.load(open(res_file, 'r'))

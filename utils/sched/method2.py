@@ -16,20 +16,20 @@ def get_lower_bound(graph, max_resources):
         if inputs:
             graph[id].finish_time += max([graph[i].finish_time for i in inputs])
         critical_duration = max(critical_duration, graph[id].finish_time)
-        
+
         op_resources = get_op_resources(id, graph)
         for i, op_res in enumerate(op_resources):
             dot_sum[i] += graph[id].duration * op_res
-    
+
     lbs = [ds / mr for ds, mr in zip(dot_sum, max_resources)] + [critical_duration]
     return max(lbs)
 
 def get_op_resources(id, graph):
-    num_sm = 82
-    max_blocks_per_sm = 16
+    num_sm = 20
+    max_blocks_per_sm = 32
     max_registers_per_sm = 64 *  1024
-    max_warps_per_sm = 48
-    max_shared_mem_per_sm = 164 * 1024 # bytes
+    max_warps_per_sm = 64
+    max_shared_mem_per_sm = 96 * 1024 # bytes
 
     blocks_per_wave = min(graph[id].grid_size, 
         min([max_blocks_per_sm, 
@@ -129,7 +129,7 @@ def method2_assign(graph, **kwargs):
     best_time = 100000000
     best = []
     cd = critical_distance(graph)
-    for num_stream in range(1, 65):
+    for num_stream in range(1, 33):
         ft, lb = method2_internal(graph, num_stream, cd)
         assert graph.is_empty()
         time = graph.get_latency()
