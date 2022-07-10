@@ -8,10 +8,11 @@ def get_kernel_info(log_file: str):
                                                      'blkx', 'blky', 'blkz', 'reg_per_thread',
                                                      's_shr', 'd_shr', 'kernel_name'])
 
-    kernel_info = defaultdict(lambda : {'duration': 0, 'grid_size': 0, 'block_size': 0,
-                                        'threads': 0, 'registers_per_thread': 0,
-                                        'warps_per_sm': 0, 'memory': 0,
-                                        'dyn_mem': 0, 'stc_mem': 0})
+    eps = 0.000000000000000001
+    kernel_info = defaultdict(lambda : {'duration': eps, 'grid_size': 1, 'block_size': 1,
+                                        'threads': 0, 'registers_per_thread': 1,
+                                        'warps_per_sm': 1, 'memory': 0,
+                                        'dyn_mem': 0, 'stc_mem': eps})
     for i in range(len(table)):
         kernel_name = table.kernel_name[i]
         if 'CUDA' in kernel_name or kernel_name in kernel_info.keys():

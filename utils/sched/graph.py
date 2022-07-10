@@ -22,7 +22,7 @@ class Node:
 
     def is_ready(self):
         return self.ref_cnt == 0
-    
+
 class Graph:
     def __init__(self, model_path, kernel_info=defaultdict(lambda: defaultdict(lambda: 1))):
         json_dict = json.load(open(model_path + '.json'))
@@ -37,7 +37,7 @@ class Graph:
         self.topo_order = []
         for cur_id in range(self.num_node):
             cur_node = json_dict['nodes'][cur_id]
-            
+
             # set tvm_op
             if cur_node['op'] == 'tvm_op' and cur_node['attrs']['func_name'] != '__nop':
                 self.topo_order.append(cur_id)

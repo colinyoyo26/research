@@ -35,7 +35,7 @@ def get_op_resources(id, graph):
         min([max_blocks_per_sm, 
         max_registers_per_sm // max(1, graph[id].registers_per_block),
         max_warps_per_sm // graph[id].warps_per_block,
-        max_shared_mem_per_sm // max(1, graph[id].shr_mem_per_block)]) * 82)
+        max_shared_mem_per_sm // max(1, graph[id].shr_mem_per_block)]) * num_sm)
     return [blocks_per_wave, 1]
 
 def critical_distance(graph):
@@ -58,7 +58,7 @@ def critical_length(graph):
     return res
 
 def method2_internal(graph, num_stream, cd):
-    max_resident_thread_blocks = int(82 * 16 * 1)
+    max_resident_thread_blocks = int(32 * 20 * 1)
     max_ops = num_stream
 
     max_resources = [max_resident_thread_blocks, max_ops]
@@ -66,7 +66,7 @@ def method2_internal(graph, num_stream, cd):
 
     lb = get_lower_bound(graph, max_resources)
     stream_finish_time = [0] * num_stream
-    
+
     s = {}
     resource_variations = defaultdict(lambda: np.array([0.] * num_resources))
     start_time = 0
@@ -79,12 +79,12 @@ def method2_internal(graph, num_stream, cd):
                 usage += variation
         assert np.all(usage >= 0) and np.all(usage <= max_resources)
         return usage
- 
+
     def operators_can_start_at_time(time, R):
         nonlocal resource_variations, max_resources, s, graph
         usage = resource_usage_at_time(time)
         S = []
-        
+
         for id in R:
             if not id in s.keys():
                 inputs = graph[id].inputs
@@ -104,9 +104,11 @@ def method2_internal(graph, num_stream, cd):
     while not graph.is_empty():
         S = operators_can_start_at_time(start_time, graph.ready_nodes())
         if not S:
+            assert np.any(resource_usage_at_time(start_time)) or print(get_op_resources(graph.ready_nodes()[0], graph))
             start_time = min([t for t in resource_variations.keys() if t > start_time])
         else:
             id = max(S, key=lambda x: cd[x])  # selection rule
+            assert graph[id].duration != 0
             s[id] = start_time
             op_resources = get_op_resources(id, graph)
             resource_variations[start_time] += op_resources
@@ -121,6 +123,7 @@ def method2_internal(graph, num_stream, cd):
                     x[0]))[0]
             assert stream_finish_time[sid] <= start_time
             stream_finish_time[sid] = start_time + graph[id].duration
+
             graph.emit_node(id, sid, graph.get_inputs(id))
     graph[graph.consume_nodes[-1]].stream_id = 0
     return max(stream_finish_time) / 1e3, lb / 1e3
